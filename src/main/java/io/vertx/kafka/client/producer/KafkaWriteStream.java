@@ -56,36 +56,10 @@ public interface KafkaWriteStream<K, V> extends WriteStream<ProducerRecord<K, V>
    *
    * @param vertx Vert.x instance to use
    * @param config  Kafka producer configuration
-   * @param keyType class type for the key serialization
-   * @param valueType class type for the value serialization
-   * @return  an instance of the KafkaWriteStream
-   */
-  static <K, V> KafkaWriteStream<K, V> create(Vertx vertx, Properties config, Class<K> keyType, Class<V> valueType) {
-    return KafkaWriteStreamImpl.create(vertx, config, keyType, valueType);
-  }
-
-  /**
-   * Create a new KafkaWriteStream instance
-   *
-   * @param vertx Vert.x instance to use
-   * @param config  Kafka producer configuration
    * @return  an instance of the KafkaWriteStream
    */
   static <K, V> KafkaWriteStream<K, V> create(Vertx vertx, Map<String, Object> config) {
     return KafkaWriteStreamImpl.create(vertx, config);
-  }
-
-  /**
-   * Create a new KafkaWriteStream instance
-   *
-   * @param vertx Vert.x instance to use
-   * @param config  Kafka producer configuration
-   * @param keyType class type for the key serialization
-   * @param valueType class type for the value serialization
-   * @return  an instance of the KafkaWriteStream
-   */
-  static <K, V> KafkaWriteStream<K, V> create(Vertx vertx, Map<String, Object> config, Class<K> keyType, Class<V> valueType) {
-    return KafkaWriteStreamImpl.create(vertx, config, keyType, valueType);
   }
 
   /**

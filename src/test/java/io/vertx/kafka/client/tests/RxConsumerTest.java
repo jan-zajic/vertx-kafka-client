@@ -46,7 +46,7 @@ public class RxConsumerTest extends KafkaClusterTestBase {
     batch.awaitSuccess(20000);
     Properties config = kafkaCluster.useTo().getConsumerProperties("testConsume_consumer", "testConsume_consumer", OffsetResetStrategy.EARLIEST);
     Map<String ,String> map = mapConfig(config);
-    consumer = KafkaConsumer.create(vertx, map, String.class, String.class);
+    consumer = KafkaConsumer.create(vertx, map);
     Async done = ctx.async();
     AtomicInteger count = new AtomicInteger(numMessages);
     consumer.toObservable().subscribe(a -> {

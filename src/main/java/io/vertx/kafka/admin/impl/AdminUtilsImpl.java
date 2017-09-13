@@ -56,8 +56,7 @@ public class AdminUtilsImpl implements AdminUtils {
 
     vertx.executeBlocking(future -> {
       try {
-        kafka.admin.AdminUtils.createTopic(initZkClientAndGetZkUtils(), topicName, partitionCount, replicationFactor, topicConfigProperties,
-          kafka.admin.AdminUtils.createTopic$default$6());
+        kafka.admin.AdminUtils.createTopic(initZkClientAndGetZkUtils(), topicName, partitionCount, replicationFactor, topicConfigProperties);
         // Note $default$6() retrieves the default parameter 6 from the Scala method createTopic -- RackAwareMode
         // As of Kafka 0.10.1.1, this is equivalent to RackAwareMode.Disabled$.MODULE$
         completionHandler.handle(Future.succeededFuture());

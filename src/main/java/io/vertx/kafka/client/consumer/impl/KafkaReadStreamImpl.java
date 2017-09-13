@@ -16,27 +16,8 @@
 
 package io.vertx.kafka.client.consumer.impl;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.kafka.client.common.impl.Helper;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
-import org.apache.kafka.clients.consumer.OffsetCommitCallback;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.WakeupException;
-
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +27,23 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.OffsetCommitCallback;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.kafka.client.common.impl.Helper;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
 
 /**
  * Kafka read stream implementation
@@ -220,24 +218,13 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   public KafkaReadStream<K, V> pause(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
 
     this.submitTask((consumer, future) -> {
-      consumer.pause(topicPartitions);
+      consumer.pause(topicPartitions.toArray(new TopicPartition[]{}));
       if (future != null) {
         future.complete();
       }
     }, completionHandler);
 
     return this;
-  }
-
-  @Override
-  public void paused(Handler<AsyncResult<Set<TopicPartition>>> handler) {
-
-    this.submitTask((consumer, future) -> {
-      Set<TopicPartition> result = consumer.paused();
-      if (future != null) {
-        future.complete(result);
-      }
-    }, handler);
   }
 
   @Override
@@ -249,7 +236,7 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   public KafkaReadStream<K, V> resume(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
 
     this.submitTask((consumer, future) -> {
-      consumer.resume(topicPartitions);
+      consumer.resume(topicPartitions.toArray(new TopicPartition[]{}));
       if (future != null) {
         future.complete();
       }
@@ -278,7 +265,7 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   public KafkaReadStream<K, V> seekToEnd(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
 
     this.submitTask((consumer, future) -> {
-      consumer.seekToEnd(topicPartitions);
+      consumer.seekToEnd(topicPartitions.toArray(new TopicPartition[]{}));
       if (future != null) {
         future.complete();
       }
@@ -296,7 +283,7 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   public KafkaReadStream<K, V> seekToBeginning(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
 
     this.submitTask((consumer, future) -> {
-      consumer.seekToBeginning(topicPartitions);
+      consumer.seekToBeginning(topicPartitions.toArray(new TopicPartition[]{}));
       if (future != null) {
         future.complete();
       }
@@ -344,7 +331,9 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   public KafkaReadStream<K, V> subscribe(Set<String> topics, Handler<AsyncResult<Void>> completionHandler) {
 
     BiConsumer<Consumer<K, V>, Future<Void>> handler = (consumer, future) -> {
-      consumer.subscribe(topics, this.rebalanceListener);
+      List<String> topicsList = new ArrayList<>(topics.size());
+      topicsList.addAll(topics);
+			consumer.subscribe(topicsList, this.rebalanceListener);
       this.startConsuming();
       if (future != null) {
         future.complete();
@@ -400,7 +389,9 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   public KafkaReadStream<K, V> assign(Set<TopicPartition> partitions, Handler<AsyncResult<Void>> completionHandler) {
 
     BiConsumer<Consumer<K, V>, Future<Void>> handler = (consumer, future) -> {
-      consumer.assign(partitions);
+    	List<TopicPartition> partitionsList = new ArrayList<>(partitions.size());
+    	partitionsList.addAll(partitions);
+    	consumer.assign(partitionsList);
       this.startConsuming();
       if (future != null) {
         future.complete();
@@ -550,74 +541,6 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
       long pos = this.consumer.position(partition);
       if (future != null) {
         future.complete(pos);
-      }
-    }, handler);
-  }
-
-  @Override
-  public void offsetsForTimes(Map<TopicPartition, Long> topicPartitionTimestamps, Handler<AsyncResult<Map<TopicPartition, OffsetAndTimestamp>>> handler) {
-    this.submitTask((consumer, future) -> {
-      Map<TopicPartition, OffsetAndTimestamp> offsetsForTimes = this.consumer.offsetsForTimes(topicPartitionTimestamps);
-      if (future != null) {
-        future.complete(offsetsForTimes);
-      }
-    }, handler);
-  }
-
-  @Override
-  public void offsetsForTimes(TopicPartition topicPartition, long timestamp, Handler<AsyncResult<OffsetAndTimestamp>> handler) {
-    this.submitTask((consumer, future) -> {
-      Map<TopicPartition, Long> input = new HashMap<>();
-      input.put(topicPartition, timestamp);
-
-      Map<TopicPartition, OffsetAndTimestamp> offsetsForTimes = this.consumer.offsetsForTimes(input);
-      if (future != null) {
-        future.complete(offsetsForTimes.get(topicPartition));
-      }
-    }, handler);
-  }
-
-
-  @Override
-  public void beginningOffsets(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Map<TopicPartition, Long>>> handler) {
-    this.submitTask((consumer, future) -> {
-      Map<TopicPartition, Long> beginningOffsets = this.consumer.beginningOffsets(topicPartitions);
-      if (future != null) {
-        future.complete(beginningOffsets);
-      }
-    }, handler);
-  }
-
-  @Override
-  public void beginningOffsets(TopicPartition topicPartition, Handler<AsyncResult<Long>> handler) {
-    this.submitTask((consumer, future) -> {
-      Set<TopicPartition> input = new HashSet<>();
-      input.add(topicPartition);
-      Map<TopicPartition, Long> beginningOffsets = this.consumer.beginningOffsets(input);
-      if (future != null) {
-        future.complete(beginningOffsets.get(topicPartition));
-      }
-    }, handler);
-  }
-
-  @Override
-  public void endOffsets(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Map<TopicPartition, Long>>> handler) {
-    this.submitTask((consumer, future) -> {
-      Map<TopicPartition, Long> endOffsets = this.consumer.endOffsets(topicPartitions);
-      if (future != null) {
-        future.complete(endOffsets);
-      }
-    }, handler);
-  }
-
-  @Override
-  public void endOffsets(TopicPartition topicPartition, Handler<AsyncResult<Long>> handler) {
-    this.submitTask((consumer, future) -> {
-      Set<TopicPartition> input = new HashSet<>();
-      input.add(topicPartition);
-      Map<TopicPartition, Long> endOffsets = this.consumer.endOffsets(input);
-      if (future != null) {
-        future.complete(endOffsets.get(topicPartition));
       }
     }, handler);
   }

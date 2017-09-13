@@ -16,32 +16,31 @@
 
 package io.vertx.kafka.client.consumer.impl;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.kafka.client.consumer.OffsetAndTimestamp;
-import io.vertx.kafka.client.common.impl.CloseHandler;
-import io.vertx.kafka.client.common.impl.Helper;
-import io.vertx.kafka.client.common.PartitionInfo;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecords;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
-import io.vertx.kafka.client.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.Consumer;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.kafka.clients.consumer.Consumer;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.kafka.client.common.PartitionInfo;
+import io.vertx.kafka.client.common.TopicPartition;
+import io.vertx.kafka.client.common.impl.CloseHandler;
+import io.vertx.kafka.client.common.impl.Helper;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
+import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
+import io.vertx.kafka.client.consumer.KafkaConsumerRecords;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
+import io.vertx.kafka.client.consumer.OffsetAndMetadata;
 
 /**
  * Vert.x Kafka consumer implementation
@@ -107,19 +106,6 @@ public class KafkaConsumerImpl<K, V> implements KafkaConsumer<K, V> {
   public KafkaConsumer<K, V> pause(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
     this.stream.pause(Helper.to(topicPartitions), completionHandler);
     return this;
-  }
-
-  @Override
-  public void paused(Handler<AsyncResult<Set<TopicPartition>>> handler) {
-
-    this.stream.paused(done -> {
-
-      if (done.succeeded()) {
-        handler.handle(Future.succeededFuture(Helper.from(done.result())));
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
   }
 
   @Override
@@ -413,101 +399,6 @@ public class KafkaConsumerImpl<K, V> implements KafkaConsumer<K, V> {
   @Override
   public void position(TopicPartition partition, Handler<AsyncResult<Long>> handler) {
     this.stream.position(Helper.to(partition), handler);
-  }
-
-  @Override
-  public void offsetsForTimes(TopicPartition topicPartition, Long timestamp, Handler<AsyncResult<OffsetAndTimestamp>> handler) {
-    Map<TopicPartition, Long> topicPartitions = new HashMap<>();
-    topicPartitions.put(topicPartition, timestamp);
-
-    this.stream.offsetsForTimes(Helper.toTopicPartitionTimes(topicPartitions), done -> {
-      if(done.succeeded()) {
-        if (done.result().values().size() == 1) {
-          org.apache.kafka.common.TopicPartition kTopicPartition = new org.apache.kafka.common.TopicPartition (topicPartition.getTopic(), topicPartition.getPartition());
-          org.apache.kafka.clients.consumer.OffsetAndTimestamp offsetAndTimestamp = done.result().get(kTopicPartition);
-          if(offsetAndTimestamp != null) {
-            OffsetAndTimestamp resultOffsetAndTimestamp = new OffsetAndTimestamp(offsetAndTimestamp.offset(), offsetAndTimestamp.timestamp());
-            handler.handle(Future.succeededFuture(resultOffsetAndTimestamp));
-          }
-          // offsetAndTimestamp is null, i.e., search by timestamp did not lead to a result
-          else {
-            handler.handle(Future.succeededFuture());
-          }
-        } else if (done.result().values().size() == 0) {
-          handler.handle(Future.succeededFuture());
-        } else {
-          handler.handle(Future.failedFuture("offsetsForTimes should return exactly one OffsetAndTimestamp"));
-        }
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
-  }
-
-  @Override
-  public void offsetsForTimes(Map<TopicPartition, Long> topicPartitionTimestamps, Handler<AsyncResult<Map<TopicPartition, OffsetAndTimestamp>>> handler) {
-    this.stream.offsetsForTimes(Helper.toTopicPartitionTimes(topicPartitionTimestamps), done -> {
-      if(done.succeeded()) {
-        handler.handle(Future.succeededFuture(Helper.fromTopicPartitionOffsetAndTimestamp(done.result())));
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
-  }
-
-  @Override
-  public void beginningOffsets(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Map<TopicPartition, Long>>> handler) {
-    this.stream.beginningOffsets(Helper.to(topicPartitions), done -> {
-      if(done.succeeded()) {
-        handler.handle(Future.succeededFuture(Helper.fromTopicPartitionOffsets(done.result())));
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
-  }
-
-  @Override
-  public void beginningOffsets(TopicPartition topicPartition, Handler<AsyncResult<Long>> handler) {
-    Set<TopicPartition> beginningOffsets = new HashSet<>();
-    beginningOffsets.add(topicPartition);
-    this.stream.beginningOffsets(Helper.to(beginningOffsets), done -> {
-      if(done.succeeded()) {
-        // We know that this will result in exactly one iteration
-        for(long beginningOffset : done.result().values()) {
-          handler.handle(Future.succeededFuture(beginningOffset));
-          break;
-        }
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
-  }
-
-  @Override
-  public void endOffsets(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Map<TopicPartition, Long>>> handler) {
-    this.stream.endOffsets(Helper.to(topicPartitions), done -> {
-      if(done.succeeded()) {
-        handler.handle(Future.succeededFuture(Helper.fromTopicPartitionOffsets(done.result())));
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
-  }
-
-  @Override
-  public void endOffsets(TopicPartition topicPartition, Handler<AsyncResult<Long>> handler) {
-    Set<TopicPartition> topicPartitions = new HashSet<>();
-    topicPartitions.add(topicPartition);
-    this.stream.endOffsets(Helper.to(topicPartitions), done -> {
-      if(done.succeeded()) {
-        for(long endOffset : done.result().values()) {
-          handler.handle(Future.succeededFuture(endOffset));
-          break;
-        }
-      } else {
-        handler.handle(Future.failedFuture(done.cause()));
-      }
-    });
   }
 
   @Override

@@ -8,7 +8,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.admin.impl.AdminUtilsImpl;
-import kafka.admin.RackAwareMode;
 import kafka.utils.ZkUtils;
 
 /**

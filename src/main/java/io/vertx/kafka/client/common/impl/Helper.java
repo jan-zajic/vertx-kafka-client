@@ -84,13 +84,13 @@ public class Helper {
   }
 
   public static Node from(org.apache.kafka.common.Node node) {
-    return new Node(node.hasRack(), node.host(), node.id(), node.idString(),
-      node.isEmpty(), node.port(), node.rack());
+    return new Node(false, node.host(), node.id(), node.idString(),
+      false, node.port(), "");
   }
 
   public static RecordMetadata from(org.apache.kafka.clients.producer.RecordMetadata metadata) {
-    return new RecordMetadata(metadata.checksum(), metadata.offset(),
-      metadata.partition(), metadata.timestamp(), metadata.topic());
+    return new RecordMetadata(0l, metadata.offset(),
+      metadata.partition(), 0l, metadata.topic());
   }
 
   public static OffsetAndMetadata from(org.apache.kafka.clients.consumer.OffsetAndMetadata offsetAndMetadata) {
@@ -115,12 +115,4 @@ public class Helper {
     );
   }
 
-  public static Map<TopicPartition, OffsetAndTimestamp> fromTopicPartitionOffsetAndTimestamp(Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndTimestamp> topicPartitionOffsetAndTimestamps) {
-    return topicPartitionOffsetAndTimestamps.entrySet().stream()
-      .filter(e-> e.getValue() != null)
-      .collect(Collectors.toMap(
-        e -> new TopicPartition(e.getKey().topic(), e.getKey().partition()),
-        e ->new OffsetAndTimestamp(e.getValue().offset(), e.getValue().timestamp()))
-      );
-  }
 }

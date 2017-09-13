@@ -117,7 +117,7 @@ public class ProducerMockTest {
     KafkaWriteStream<String, String> producer = ProducerTest.producer(Vertx.vertx(), mock);
     int sent = 0;
     while (!producer.writeQueueFull()) {
-      producer.write(new ProducerRecord<>("the_topic", 0, 0L, "abc", "def"));
+      producer.write(new ProducerRecord<>("the_topic", "abc", "def"));
       sent++;
     }
     Async async = ctx.async();
@@ -145,7 +145,7 @@ public class ProducerMockTest {
   public void testProducerError(TestContext ctx) throws Exception {
     TestProducer mock = new TestProducer();
     KafkaWriteStream<String, String> producer = ProducerTest.producer(Vertx.vertx(), mock);
-    producer.write(new ProducerRecord<>("the_topic", 0, 0L, "abc", "def"));
+    producer.write(new ProducerRecord<>("the_topic", "abc", "def"));
     RuntimeException cause = new RuntimeException();
     Async async = ctx.async();
     producer.exceptionHandler(err -> {
@@ -166,7 +166,7 @@ public class ProducerMockTest {
 //    props.put(ProducerConfig.ACKS_CONFIG, "all");
     KafkaWriteStream<String, String> producer = ProducerTest.producer(vertx, producerProps);
     for (int i = 0;i < numMsg;i++) {
-      producer.write(new ProducerRecord<>(topic, 0, 0L, "the_key_" + i, "the_value_" + i));
+      producer.write(new ProducerRecord<>(topic, "the_key_" + i, "the_value_" + i));
     }
     producer.close();
 //    List<String> msg = ku.readMessages("testtopic", 100);

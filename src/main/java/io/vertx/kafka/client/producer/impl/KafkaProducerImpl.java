@@ -53,14 +53,6 @@ public class KafkaProducerImpl<K, V> implements KafkaProducer<K, V> {
     return createShared(vertx, name, () -> KafkaWriteStream.create(vertx, new HashMap<>(config)));
   }
 
-  public static <K, V> KafkaProducer<K, V> createShared(Vertx vertx, String name, Properties config, Class<K> keyType, Class<V> valueType) {
-    return createShared(vertx, name, () -> KafkaWriteStream.create(vertx, config, keyType, valueType));
-  }
-
-  public static <K, V> KafkaProducer<K, V> createShared(Vertx vertx, String name, Map<String, String> config, Class<K> keyType, Class<V> valueType) {
-    return createShared(vertx, name, () -> KafkaWriteStream.create(vertx, new HashMap<>(config), keyType, valueType));
-  }
-
   private static class SharedProducer extends HashMap<Object, KafkaProducer> {
 
     final Producer producer;

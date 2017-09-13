@@ -16,33 +16,28 @@
 
 package io.vertx.kafka.client.tests;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.kafka.client.serialization.BufferDeserializer;
-import io.vertx.kafka.client.serialization.BufferSerializer;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
-import io.vertx.kafka.client.producer.KafkaWriteStream;
-import io.vertx.kafka.client.serialization.VertxSerdes;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serializer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
+import io.vertx.kafka.client.producer.KafkaWriteStream;
+import io.vertx.kafka.client.serialization.BufferDeserializer;
+import io.vertx.kafka.client.serialization.BufferSerializer;
 
 /**
  * Codec tests
@@ -66,56 +61,6 @@ public class CodecsTest extends KafkaClusterTestBase {
     vertx.close(ctx.asyncAssertSuccess());
   }
 
-
-  @Test
-  public void testBufferSerializer() {
-    testSerializer(Buffer.class, Buffer.buffer("Hello"));
-  }
-
-  @Test
-  public void testJsonObjectSerializer() {
-    testSerializer(JsonObject.class, new JsonObject()
-      .put("s", "the-string")
-      .put("the-number", 3)
-      .put("the-boolean", true));
-  }
-
-  @Test
-  public void testJsonArraySerializer() {
-    testSerializer(JsonArray.class, new JsonArray().add(3).add("s").add(true));
-  }
-
-  private <T> void testSerializer(Class<T> type, T val) {
-    final Serde<T> serde = VertxSerdes.serdeFrom(type);
-    final Deserializer<T> deserializer = serde.deserializer();
-    final Serializer<T> serializer = serde.serializer();
-
-    assertEquals("Should get the original value after serialization and deserialization",
-      val, deserializer.deserialize(topic, serializer.serialize(topic, val)));
-
-    assertEquals("Should support null in serialization and deserialization",
-      null, deserializer.deserialize(topic, serializer.serialize(topic, null)));
-  }
-
-  @Test
-  public void testStringCodec(TestContext ctx) throws Exception {
-    testCodec(ctx,
-      "testStringCodec",
-      cfg -> producer(vertx, cfg, String.class, String.class),
-      cfg -> KafkaReadStream.create(vertx, cfg, String.class, String.class),
-      i -> "key-" + i,
-      i -> "value-" + i);
-  }
-
-  @Test
-  public void testBufferCodec(TestContext ctx) throws Exception {
-    testCodec(ctx,
-      "testBufferCodec",
-      cfg -> producer(vertx, cfg, Buffer.class, Buffer.class),
-      cfg -> KafkaReadStream.create(vertx, cfg, Buffer.class, Buffer.class),
-      i -> Buffer.buffer("key-" + i),
-      i -> Buffer.buffer("value-" + i));
-  }
 
   @Test
   public void testBufferCodecString(TestContext ctx) throws Exception {

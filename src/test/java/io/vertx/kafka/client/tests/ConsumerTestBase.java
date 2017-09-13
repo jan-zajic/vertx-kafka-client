@@ -16,17 +16,16 @@
 
 package io.vertx.kafka.client.tests;
 
-import io.vertx.core.Context;
-import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
@@ -36,15 +35,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
+import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
 
 /**
  * Base class for consumer tests
@@ -686,193 +683,6 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
     consumer.subscribe(Collections.singleton(topicName));
   }
 
-
-
-  /*
-    Tests beginningOffset
-   */
-  @Test
-  public void testBeginningOffset(TestContext ctx) throws Exception {
-   testBeginningEndOffset(ctx, true);
-  }
-
-  /*
-    Teste endOffset (boolean parameter = false)
-   */
-  @Test
-  public void testEndOffset(TestContext ctx) throws Exception {
-    testBeginningEndOffset(ctx, false);
-  }
-
-  /*
-   Tests test beginningOffset or endOffset, depending on beginningOffset = true or false
-  */
-  public void testBeginningEndOffset(TestContext ctx, boolean beginningOffset) throws Exception {
-    String topicName = "testBeginningEndOffset_"+ (beginningOffset ? "beginning" : "end");
-    String consumerId = topicName;
-    Async batch = ctx.async();
-    AtomicInteger index = new AtomicInteger();
-    int numMessages = 1000;
-    kafkaCluster.useTo().produceStrings(numMessages, batch::complete, () ->
-      new ProducerRecord<>(topicName, 0, "key-" + index.get(), "value-" + index.getAndIncrement()));
-    batch.awaitSuccess(20000);
-
-    Properties config = kafkaCluster.useTo().getConsumerProperties(consumerId, consumerId, OffsetResetStrategy.EARLIEST);
-    config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-    Context context = vertx.getOrCreateContext();
-    consumer = createConsumer(context, config);
-
-    consumer.exceptionHandler(ctx::fail);
-
-    Set<TopicPartition> topicPartitions = new HashSet<>();
-    TopicPartition topicPartition= new TopicPartition(topicName, 0);
-    topicPartitions.add(topicPartition);
-
-    // Test contains two sub-tests
-    Async done = ctx.async(2);
-    consumer.handler(handler -> {
-      // nothing to do in this test
-    });
-
-    consumer.subscribe(Collections.singleton(topicName), ctx.asyncAssertSuccess(subscribeRes -> {
-          if(beginningOffset) {
-            consumer.beginningOffsets(topicPartitions, beginningOffsetResult -> {
-              ctx.assertTrue(beginningOffsetResult.succeeded());
-              // expect one result
-              ctx.assertEquals(1, beginningOffsetResult.result().size());
-              // beginning offset must be 0
-              ctx.assertEquals(0L, beginningOffsetResult.result().get(topicPartition));
-              done.countDown();
-            });
-            consumer.beginningOffsets(topicPartition, beginningOffsetResult -> {
-                ctx.assertTrue(beginningOffsetResult.succeeded());
-                // beginning offset must be 0
-                ctx.assertEquals(0L, beginningOffsetResult.result());
-                done.countDown();
-              });
-          }
-          // Tests for endOffset
-          else {
-            consumer.endOffsets(topicPartitions, endOffsetResult -> {
-              ctx.assertTrue(endOffsetResult.succeeded());
-              ctx.assertEquals(1, endOffsetResult.result().size());
-              // endOffset must be equal to the number of ingested messages
-              ctx.assertEquals((long) numMessages, endOffsetResult.result().get(topicPartition));
-              done.countDown();
-            });
-
-            consumer.endOffsets(topicPartition, endOffsetResult -> {
-              ctx.assertTrue(endOffsetResult.succeeded());
-              // endOffset must be equal to the number of ingested messages
-              ctx.assertEquals((long) numMessages, endOffsetResult.result());
-              done.countDown();
-            });
-          }
-      }
-    ));
-  }
-
-
-  @Test
-  public void testOffsetsForTimes(TestContext ctx) throws Exception {
-    String topicName = "testOffsetsForTimes";
-    String consumerId = topicName;
-    Async batch = ctx.async();
-    AtomicInteger index = new AtomicInteger();
-    int numMessages = 1000;
-    long beforeProduce = System.currentTimeMillis();
-    kafkaCluster.useTo().produceStrings(numMessages, batch::complete, () ->
-      new ProducerRecord<>(topicName, 0, "key-" + index.get(), "value-" + index.getAndIncrement()));
-    batch.awaitSuccess(20000);
-    long produceDuration = System.currentTimeMillis() - beforeProduce;
-    Properties config = kafkaCluster.useTo().getConsumerProperties(consumerId, consumerId, OffsetResetStrategy.EARLIEST);
-    config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-    Context context = vertx.getOrCreateContext();
-    consumer = createConsumer(context, config);
-
-    consumer.exceptionHandler(ctx::fail);
-
-    TopicPartition topicPartition = new TopicPartition(topicName, 0);
-
-    // Test contains two sub-tests
-    Async done = ctx.async(2);
-    consumer.handler(handler -> {
-      // nothing to do in this test
-    });
-
-    consumer.subscribe(Collections.singleton(topicName), ctx.asyncAssertSuccess(subscribeRes -> {
-      // search by timestamp
-      // take timestamp BEFORE start of ingestion and add half of the ingestion duration to it
-      long searchTimestamp = beforeProduce + (produceDuration / 2);
-      consumer.offsetsForTimes(Collections.singletonMap(topicPartition, searchTimestamp), ctx.asyncAssertSuccess(offsetAndTimestamps -> {
-        OffsetAndTimestamp offsetAndTimestamp = offsetAndTimestamps.get(topicPartition);
-        ctx.assertEquals(1, offsetAndTimestamps.size());
-        // Offset must be somewhere between beginningOffset and endOffset
-        ctx.assertTrue(offsetAndTimestamp.offset() >= 0L && offsetAndTimestamp.offset() <= (long) numMessages,
-          "Invalid offset 0 <= " + offsetAndTimestamp.offset() + " <= " + numMessages);
-        // Timestamp of returned offset must be at >= searchTimestamp
-        ctx.assertTrue(offsetAndTimestamp.timestamp() >= searchTimestamp);
-        done.countDown();
-      }));
-
-      consumer.offsetsForTimes(topicPartition, searchTimestamp, ctx.asyncAssertSuccess(offsetAndTimestamp -> {
-        // Offset must be somewhere between beginningOffset and endOffset
-        ctx.assertTrue(offsetAndTimestamp.offset() >= 0L && offsetAndTimestamp.offset() <= (long) numMessages,
-          "Invalid offset 0 <= " + offsetAndTimestamp.offset() + " <= " + numMessages);
-        // Timestamp of returned offset must be at >= searchTimestamp
-        ctx.assertTrue(offsetAndTimestamp.timestamp() >= searchTimestamp);
-        done.countDown();
-      }));
-    }));
-  }
-
-  @Test
-  // Test uses KafkaConsumer instead of KafkaReadStream to test the full API
-  public void testOffsetsForTimesWithTimestampInFuture(TestContext ctx) throws Exception {
-    String topicName = "testOffsetsForTimesWithTimestampInFuture";
-    String consumerId = topicName;
-    Async batch = ctx.async();
-    AtomicInteger index = new AtomicInteger();
-    int numMessages = 10;
-    kafkaCluster.useTo().produceStrings(numMessages, batch::complete, () ->
-      new ProducerRecord<>(topicName, 0, "key-" + index.get(), "value-" + index.getAndIncrement()));
-    batch.awaitSuccess(20000);
-    Properties config = kafkaCluster.useTo().getConsumerProperties(consumerId, consumerId, OffsetResetStrategy.EARLIEST);
-    config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-    KafkaConsumer<Object, Object> wrappedConsumer = KafkaConsumer.create(vertx, config);
-    wrappedConsumer.exceptionHandler(ctx::fail);
-
-    io.vertx.kafka.client.common.TopicPartition topicPartition = new io.vertx.kafka.client.common.TopicPartition(topicName, 0);
-
-    Async done = ctx.async(2);
-    done.handler(r -> wrappedConsumer.close());
-    wrappedConsumer.handler(handler -> {
-      // nothing to do in this test
-    });
-
-    // Note offsetsForTimes doesn't require a subscription or assignment
-    // search by timestamp
-    // take a timestamp in the future, such that no offset exists
-    long searchTimestamp = System.currentTimeMillis();
-    wrappedConsumer.offsetsForTimes(topicPartition, searchTimestamp, ctx.asyncAssertSuccess(offsetAndTimestamp -> {
-      ctx.assertEquals(null, offsetAndTimestamp, "Must return null because no offset for a timestamp in the future can exist");
-      done.countDown();
-    }));
-
-    wrappedConsumer.offsetsForTimes(Collections.singletonMap(topicPartition, searchTimestamp), ctx.asyncAssertSuccess(offsetAndTimestamps -> {
-      io.vertx.kafka.client.consumer.OffsetAndTimestamp offsetAndTimestamp = offsetAndTimestamps.get(topicPartition);
-      ctx.assertEquals(0, offsetAndTimestamps.size(), "Must not return a result, because no Offset is found");
-      ctx.assertEquals(null, offsetAndTimestamp, "Must return null because no offset for a timestamp in the future can exist");
-      done.countDown();
-    }));
-  }
-  
   @Test
   public void testBatchHandler(TestContext ctx) throws Exception {
     String topicName = "testBatchHandler";

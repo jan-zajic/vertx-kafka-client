@@ -16,6 +16,14 @@
 
 package io.vertx.kafka.client.consumer;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import org.apache.kafka.clients.consumer.Consumer;
+
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
@@ -26,13 +34,6 @@ import io.vertx.core.streams.ReadStream;
 import io.vertx.kafka.client.common.PartitionInfo;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.impl.KafkaConsumerImpl;
-import org.apache.kafka.clients.consumer.Consumer;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 /**
  * Vert.x Kafka consumer.
@@ -77,43 +78,12 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    * Create a new KafkaConsumer instance
    *
    * @param vertx Vert.x instance to use
-   * @param config  Kafka consumer configuration
-   * @param keyType class type for the key deserialization
-   * @param valueType class type for the value deserialization
-   * @return  an instance of the KafkaConsumer
-   */
-  static <K, V> KafkaConsumer<K, V> create(Vertx vertx, Map<String, String> config,
-                                           Class<K> keyType, Class<V> valueType) {
-    KafkaReadStream<K, V> stream = KafkaReadStream.create(vertx, new HashMap<>(config), keyType, valueType);
-    return new KafkaConsumerImpl<>(stream).registerCloseHook();
-  }
-
-  /**
-   * Create a new KafkaConsumer instance
-   *
-   * @param vertx Vert.x instance to use
    * @param config Kafka consumer configuration
    * @return  an instance of the KafkaConsumer
    */
   @GenIgnore
   static <K, V> KafkaConsumer<K, V> create(Vertx vertx, Properties config) {
     KafkaReadStream<K, V> stream = KafkaReadStream.create(vertx, config);
-    return new KafkaConsumerImpl<>(stream).registerCloseHook();
-  }
-
-  /**
-   * Create a new KafkaConsumer instance
-   *
-   * @param vertx Vert.x instance to use
-   * @param config Kafka consumer configuration
-   * @param keyType class type for the key deserialization
-   * @param valueType class type for the value deserialization
-   * @return  an instance of the KafkaConsumer
-   */
-  @GenIgnore
-  static <K, V> KafkaConsumer<K, V> create(Vertx vertx, Properties config,
-                                           Class<K> keyType, Class<V> valueType) {
-    KafkaReadStream<K, V> stream = KafkaReadStream.create(vertx, config, keyType, valueType);
     return new KafkaConsumerImpl<>(stream).registerCloseHook();
   }
 
@@ -295,13 +265,6 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    */
   @Fluent
   KafkaConsumer<K, V> pause(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler);
-
-  /**
-   * Get the set of partitions that were previously paused by a call to pause(Set).
-   *
-   * @param handler handler called on operation completed
-   */
-  void paused(Handler<AsyncResult<Set<TopicPartition>>> handler);
 
   /**
    * Resume specified partition which have been paused with pause.
@@ -535,56 +498,6 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    * @param handler handler called on operation completed
    */
   void position(TopicPartition partition, Handler<AsyncResult<Long>> handler);
-
-  /**
-   * Look up the offsets for the given partitions by timestamp. Note: the result might be empty in case
-   * for the given timestamp no offset can be found -- e.g., when the timestamp refers to the future
-   * @param topicPartitionTimestamps A map with pairs of (TopicPartition, Timestamp).
-   * @param handler handler called on operation completed
-   */
-  @GenIgnore
-  void offsetsForTimes(Map<TopicPartition, Long> topicPartitionTimestamps, Handler<AsyncResult<Map<TopicPartition, OffsetAndTimestamp>>> handler);
-
-  /**
-   * Look up the offset for the given partition by timestamp. Note: the result might be null in case
-   * for the given timestamp no offset can be found -- e.g., when the timestamp refers to the future
-   * @param topicPartition TopicPartition to query.
-   * @param timestamp Timestamp to be used in the query.
-   * @param handler handler called on operation completed
-   */
-  void offsetsForTimes(TopicPartition topicPartition, Long timestamp, Handler<AsyncResult<OffsetAndTimestamp>> handler);
-
-  /**
-   * Get the first offset for the given partitions.
-   * @param topicPartitions the partitions to get the earliest offsets.
-   * @param handler handler called on operation completed. Returns the earliest available offsets for the given partitions
-   */
-  @GenIgnore
-  void beginningOffsets(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Map<TopicPartition, Long>>> handler);
-
-  /**
-   * Get the first offset for the given partitions.
-   * @param topicPartition the partition to get the earliest offset.
-   * @param handler handler called on operation completed. Returns the earliest available offset for the given partition
-   */
-  void beginningOffsets(TopicPartition topicPartition, Handler<AsyncResult<Long>> handler);
-
-  /**
-   * Get the last offset for the given partitions. The last offset of a partition is the offset
-   * of the upcoming message, i.e. the offset of the last available message + 1.
-   * @param topicPartitions the partitions to get the end offsets.
-   * @param handler handler called on operation completed. The end offsets for the given partitions.
-   */
-  @GenIgnore
-  void endOffsets(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Map<TopicPartition, Long>>> handler);
-
-  /**
-   * Get the last offset for the given partition. The last offset of a partition is the offset
-   * of the upcoming message, i.e. the offset of the last available message + 1.
-   * @param topicPartition the partition to get the end offset.
-   * @param handler handler called on operation completed. The end offset for the given partition.
-   */
-  void endOffsets(TopicPartition topicPartition, Handler<AsyncResult<Long>> handler);
 
   /**
    * @return  underlying the {@link KafkaReadStream} instance

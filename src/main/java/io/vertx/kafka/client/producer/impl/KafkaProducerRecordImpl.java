@@ -32,20 +32,6 @@ public class KafkaProducerRecordImpl<K, V> implements KafkaProducerRecord<K, V> 
    * @param topic the topic this record is being sent to
    * @param key the key (or null if no key is specified)
    * @param value the value
-   * @param timestamp the timestamp of this record
-   * @param partition the partition to which the record will be sent (or null if no partition was specified)
-   */
-  public KafkaProducerRecordImpl(String topic, K key, V value, Long timestamp, Integer partition) {
-
-    this.record = new ProducerRecord<>(topic, partition, timestamp, key, value);
-  }
-
-  /**
-   * Constructor
-   *
-   * @param topic the topic this record is being sent to
-   * @param key the key (or null if no key is specified)
-   * @param value the value
    * @param partition the partition to which the record will be sent (or null if no partition was specified)
    */
   public KafkaProducerRecordImpl(String topic, K key, V value, Integer partition) {
@@ -84,11 +70,6 @@ public class KafkaProducerRecordImpl<K, V> implements KafkaProducerRecord<K, V> 
   @Override
   public K key() {
     return this.record.key();
-  }
-
-  @Override
-  public Long timestamp() {
-    return this.record.timestamp();
   }
 
   @Override

@@ -16,33 +16,17 @@
 
 package io.vertx.kafka.client.producer;
 
+import org.apache.kafka.clients.producer.ProducerRecord;
+
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.kafka.client.producer.impl.KafkaProducerRecordImpl;
-import org.apache.kafka.clients.producer.ProducerRecord;
 
 /**
  * Vert.x Kafka producer record.
  */
 @VertxGen
 public interface KafkaProducerRecord<K, V> {
-
-  /**
-   * Create a concrete instance of a Vert.x producer record
-   *
-   * @param topic the topic this record is being sent to
-   * @param key the key (or null if no key is specified)
-   * @param value the value
-   * @param timestamp the timestamp of this record
-   * @param partition the partition to which the record will be sent (or null if no partition was specified)
-   * @param <K> key type
-   * @param <V> value type
-   * @return  Vert.x producer record
-   */
-  static <K, V> KafkaProducerRecord<K, V> create(String topic, K key, V value, Long timestamp, Integer partition) {
-
-    return new KafkaProducerRecordImpl<>(topic, key, value, timestamp, partition);
-  }
 
   /**
    * Create a concrete instance of a Vert.x producer record
@@ -104,11 +88,6 @@ public interface KafkaProducerRecord<K, V> {
    * @return  the value
    */
   V value();
-
-  /**
-   * @return  the timestamp of this record
-   */
-  Long timestamp();
 
   /**
    * @return  the partition to which the record will be sent (or null if no partition was specified)

@@ -19,7 +19,6 @@ package io.vertx.kafka.client.consumer;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.record.TimestampType;
 
 /**
  * Vert.x Kafka consumer record
@@ -41,21 +40,6 @@ public interface KafkaConsumerRecord<K, V> {
    * @return  the position of this record in the corresponding Kafka partition.
    */
   long offset();
-
-  /**
-   * @return  the timestamp of this record
-   */
-  long timestamp();
-
-  /**
-   * @return  the timestamp type of this record
-   */
-  TimestampType timestampType();
-
-  /**
-   * @return  the checksum (CRC32) of the record.
-   */
-  long checksum();
 
   /**
    * @return  the key (or null if no key is specified)

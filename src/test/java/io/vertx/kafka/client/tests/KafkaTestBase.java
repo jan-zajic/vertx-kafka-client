@@ -68,10 +68,6 @@ public class KafkaTestBase {
     return KafkaWriteStream.create(vertx, config);
   }
 
-  static <K, V> KafkaWriteStream<K, V> producer(Vertx vertx, Properties config, Class<K> keyType, Class<V> valueType) {
-    return KafkaWriteStream.create(vertx, config, keyType, valueType);
-  }
-
   static <K, V> KafkaWriteStream<K, V> producer(Vertx vertx, Producer<K, V> producer) {
     return KafkaWriteStream.create(vertx, producer);
   }

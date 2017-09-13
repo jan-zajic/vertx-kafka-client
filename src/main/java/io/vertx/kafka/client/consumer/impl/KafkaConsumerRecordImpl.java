@@ -16,9 +16,9 @@
 
 package io.vertx.kafka.client.consumer.impl;
 
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.record.TimestampType;
+
+import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 
 /**
  * Vert.x Kafka consumer record implementation
@@ -49,21 +49,6 @@ public class KafkaConsumerRecordImpl<K, V> implements KafkaConsumerRecord<K, V> 
   @Override
   public long offset() {
     return this.record.offset();
-  }
-
-  @Override
-  public long timestamp() {
-    return this.record.timestamp();
-  }
-
-  @Override
-  public TimestampType timestampType() {
-    return this.record.timestampType();
-  }
-
-  @Override
-  public long checksum() {
-    return this.record.checksum();
   }
 
   @Override

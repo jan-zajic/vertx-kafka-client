@@ -23,14 +23,14 @@
     <version>26</version>
   </parent>
 
-  <artifactId>vertx-kafka-client</artifactId>
+  <artifactId>vertx-kafka-0.9-client</artifactId>
   <version>3.4.2</version>
 
   <name>Vert.x Kafka Client</name>
 
   <properties>
     <stack.version>3.4.2</stack.version>
-    <kafka.version>0.10.2.1</kafka.version>
+    <kafka.version>0.9.0.1</kafka.version>
     <debezium.version>0.5.1</debezium.version>
   </properties>
 
@@ -100,7 +100,7 @@
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka_2.12</artifactId>
+      <artifactId>kafka_2.11</artifactId>
       <version>${kafka.version}</version>
     </dependency>
 
@@ -177,4 +177,50 @@
       </plugins>
     </pluginManagement>
   </build>
+  
+  <profiles>
+		<profile>
+			<id>artifactory</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<repositories>
+				<repository>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+					<id>corpus-libs-rel</id>
+					<name>libs-release</name>
+					<url>http://repo.prj.intra/artifactory/libs-release</url>
+				</repository>
+				<repository>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+					<id>corpus-libs-snap</id>
+					<name>libs-snapshot</name>
+					<url>http://repo.prj.intra/artifactory/libs-snapshot</url>
+				</repository>
+			</repositories>
+			<pluginRepositories>
+				<pluginRepository>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+					<id>corpus-libs-rel</id>
+					<name>libs-release</name>
+					<url>http://repo.prj.intra/artifactory/libs-release</url>
+				</pluginRepository>
+				<pluginRepository>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+					<id>corpus-libs-snap</id>
+					<name>libs-snapshot</name>
+					<url>http://repo.prj.intra/artifactory/libs-snapshot</url>
+				</pluginRepository>
+			</pluginRepositories>
+		</profile>
+	</profiles>
+  
 </project>

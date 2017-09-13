@@ -16,22 +16,6 @@
 
 package examples;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.docgen.Source;
-import io.vertx.kafka.client.consumer.OffsetAndTimestamp;
-import io.vertx.kafka.client.common.PartitionInfo;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
-import io.vertx.kafka.client.producer.KafkaProducer;
-import io.vertx.kafka.client.producer.KafkaProducerRecord;
-import io.vertx.kafka.client.producer.RecordMetadata;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +23,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+import io.vertx.core.Vertx;
+import io.vertx.docgen.Source;
+import io.vertx.kafka.client.common.PartitionInfo;
+import io.vertx.kafka.client.common.TopicPartition;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
+import io.vertx.kafka.client.producer.KafkaProducer;
+import io.vertx.kafka.client.producer.KafkaProducerRecord;
+import io.vertx.kafka.client.producer.RecordMetadata;
 
 @Source
 public class VertxKafkaClientExamples {
@@ -106,7 +103,7 @@ public class VertxKafkaClientExamples {
     config.put(ProducerConfig.ACKS_CONFIG, "1");
 
     // use producer for interacting with Apache Kafka
-    KafkaProducer<String, String> producer = KafkaProducer.create(vertx, config, String.class, String.class);
+    KafkaProducer<String, String> producer = KafkaProducer.create(vertx, config);
   }
 
   public void exampleSubscribe(KafkaConsumer<String, String> consumer) {
@@ -384,104 +381,6 @@ public class VertxKafkaClientExamples {
 
 
   /**
-   * Example to demonstrate how one can use the new beginningOffsets API (introduced with Kafka
-   * 0.10.1.1) to look up the first offset for a given partition.
-   * @param consumer Consumer to be used
-   */
-  public void exampleConsumerBeginningOffsets(KafkaConsumer<String, String> consumer) {
-    Set<TopicPartition> topicPartitions = new HashSet<>();
-    TopicPartition topicPartition = new TopicPartition().setTopic("test").setPartition(0);
-    topicPartitions.add(topicPartition);
-
-    consumer.beginningOffsets(topicPartitions, done -> {
-      if(done.succeeded()) {
-        Map<TopicPartition, Long> results = done.result();
-        results.forEach((topic, beginningOffset) ->
-          System.out.println("Beginning offset for topic="+topic.getTopic()+", partition="+
-            topic.getPartition()+", beginningOffset="+beginningOffset));
-      }
-    });
-
-    // Convenience method for single-partition lookup
-    consumer.beginningOffsets(topicPartition, done -> {
-      if(done.succeeded()) {
-        Long beginningOffset = done.result();
-          System.out.println("Beginning offset for topic="+topicPartition.getTopic()+", partition="+
-            topicPartition.getPartition()+", beginningOffset="+beginningOffset);
-      }
-    });
-
-  }
-
-  /**
-   * Example to demonstrate how one can use the new endOffsets API (introduced with Kafka
-   * 0.10.1.1) to look up the last offset for a given partition.
-   * @param consumer Consumer to be used
-   */
-  public void exampleConsumerEndOffsets(KafkaConsumer<String, String> consumer) {
-    Set<TopicPartition> topicPartitions = new HashSet<>();
-    TopicPartition topicPartition = new TopicPartition().setTopic("test").setPartition(0);
-    topicPartitions.add(topicPartition);
-
-    consumer.endOffsets(topicPartitions, done -> {
-      if(done.succeeded()) {
-        Map<TopicPartition, Long> results = done.result();
-        results.forEach((topic, endOffset) ->
-          System.out.println("End offset for topic="+topic.getTopic()+", partition="+
-            topic.getPartition()+", endOffset="+endOffset));
-      }
-    });
-
-    // Convenience method for single-partition lookup
-    consumer.endOffsets(topicPartition, done -> {
-      if(done.succeeded()) {
-        Long endOffset = done.result();
-          System.out.println("End offset for topic="+topicPartition.getTopic()+", partition="+
-            topicPartition.getPartition()+", endOffset="+endOffset);
-      }
-    });
-  }
-
-  /**
-   * Example to demonstrate how one can use the new offsetsForTimes API (introduced with Kafka
-   * 0.10.1.1) to look up an offset by timestamp, i.e. search parameter is an epoch timestamp and
-   * the call returns the lowest offset with ingestion timestamp >= given timestamp.
-   * @param consumer Consumer to be used
-   */
-  public void exampleConsumerOffsetsForTimes(KafkaConsumer<String, String> consumer) {
-    Map<TopicPartition, Long> topicPartitionsWithTimestamps = new HashMap<>();
-    TopicPartition topicPartition = new TopicPartition().setTopic("test").setPartition(0);
-
-    // We are interested in the offset for data ingested 60 seconds ago
-    long timestamp = (System.currentTimeMillis() - 60000);
-
-    topicPartitionsWithTimestamps.put(topicPartition, timestamp);
-    consumer.offsetsForTimes(topicPartitionsWithTimestamps, done -> {
-      if(done.succeeded()) {
-        Map<TopicPartition, OffsetAndTimestamp> results = done.result();
-        results.forEach((topic, offset) ->
-          System.out.println("Offset for topic="+topic.getTopic()+
-            ", partition="+topic.getPartition()+"\n"+
-            ", timestamp="+timestamp+", offset="+offset.getOffset()+
-            ", offsetTimestamp="+offset.getTimestamp()));
-
-      }
-    });
-
-    // Convenience method for single-partition lookup
-    consumer.offsetsForTimes(topicPartition, timestamp, done -> {
-      if(done.succeeded()) {
-        OffsetAndTimestamp offsetAndTimestamp = done.result();
-          System.out.println("Offset for topic="+topicPartition.getTopic()+
-            ", partition="+topicPartition.getPartition()+"\n"+
-            ", timestamp="+timestamp+", offset="+offsetAndTimestamp.getOffset()+
-            ", offsetTimestamp="+offsetAndTimestamp.getTimestamp());
-
-      }
-    });
-  }
-
-  /**
    * Example about how Kafka consumer can pause reading from a topic partition
    * and then resume read operation for continuing to get messages
    * @param vertx
@@ -696,37 +595,4 @@ public class VertxKafkaClientExamples {
     config.put("acks", "1");
   }
 
-  public void exampleUsingVertxDeserializers2(Vertx vertx) {
-
-    Map<String, String> config = new HashMap<>();
-    config.put("bootstrap.servers", "localhost:9092");
-    config.put("group.id", "my_group");
-    config.put("auto.offset.reset", "earliest");
-    config.put("enable.auto.commit", "false");
-
-    // Creating a consumer able to deserialize buffers
-    KafkaConsumer<Buffer, Buffer> bufferConsumer = KafkaConsumer.create(vertx, config, Buffer.class, Buffer.class);
-
-    // Creating a consumer able to deserialize json objects
-    KafkaConsumer<JsonObject, JsonObject> jsonObjectConsumer = KafkaConsumer.create(vertx, config, JsonObject.class, JsonObject.class);
-
-    // Creating a consumer able to deserialize json arrays
-    KafkaConsumer<JsonArray, JsonArray> jsonArrayConsumer = KafkaConsumer.create(vertx, config, JsonArray.class, JsonArray.class);
-  }
-
-  public void exampleUsingVertxSerializers2(Vertx vertx) {
-
-    Map<String, String> config = new HashMap<>();
-    config.put("bootstrap.servers", "localhost:9092");
-    config.put("acks", "1");
-
-    // Creating a producer able to serialize to buffers
-    KafkaProducer<Buffer, Buffer> bufferProducer = KafkaProducer.create(vertx, config, Buffer.class, Buffer.class);
-
-    // Creating a producer able to serialize to json objects
-    KafkaProducer<JsonObject, JsonObject> jsonObjectProducer = KafkaProducer.create(vertx, config, JsonObject.class, JsonObject.class);
-
-    // Creating a producer able to serialize to json arrays
-    KafkaProducer<JsonArray, JsonArray> jsonArrayProducer = KafkaProducer.create(vertx, config, JsonArray.class, JsonArray.class);
-  }
 }

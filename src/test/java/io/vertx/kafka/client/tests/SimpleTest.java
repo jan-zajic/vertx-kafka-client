@@ -208,7 +208,7 @@ public class SimpleTest {
     map.put(ProducerConfig.ACKS_CONFIG, Integer.toString(1));
 
     io.vertx.kafka.client.producer.KafkaProducer<String, String> producer =
-      io.vertx.kafka.client.producer.KafkaProducer.create(vertx, map, String.class, String.class);
+      io.vertx.kafka.client.producer.KafkaProducer.create(vertx, map);
 
     VertxKafkaClientExamples examples = new VertxKafkaClientExamples();
 
