@@ -91,14 +91,6 @@
  * or provided by received messages; this is a way for setting the key and value serializers/deserializers instead of
  * using the related properties for that
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#createProducerJava}
- * ----
- *
- * Here the {@link io.vertx.kafka.client.producer.KafkaProducer} instance is created in using a {@link java.util.Properties} for
- * specifying Kafka nodes list to connect (just one) and the acknowledgment mode; the key and value deserializers are
- * specified as parameters of {@link io.vertx.kafka.client.producer.KafkaProducer#create(io.vertx.core.Vertx, java.util.Properties, java.lang.Class, java.lang.Class)}.
  * endif::[]
  *
  * == Receiving messages from a topic joining a consumer group
