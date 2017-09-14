@@ -375,26 +375,7 @@
  * ----
  * {@link examples.VertxKafkaClientExamples#exampleUsingVertxSerializers()}
  * ----
- *
- * ifdef::java,groovy,kotlin[]
- * You can also specify the serizalizers/deserializers at creation time:
- *
- * In a consumer
- *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleUsingVertxDeserializers2(io.vertx.core.Vertx)}
- * ----
- *
- * Or in a producer
- *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleUsingVertxSerializers2(io.vertx.core.Vertx)}
- * ----
- *
- * endif::[]
- *
+ * 
  * ifdef::java[]
  * == RxJava API
  *
