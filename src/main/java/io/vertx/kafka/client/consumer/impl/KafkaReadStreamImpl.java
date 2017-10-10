@@ -16,7 +16,23 @@
 
 package io.vertx.kafka.client.consumer.impl;
 
-import java.util.ArrayList;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.kafka.client.common.impl.Helper;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
+import org.apache.kafka.clients.consumer.OffsetCommitCallback;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -110,13 +126,13 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
       if (handler != null) {
         future = Future.future();
         future.setHandler(event-> {
-          // When we've executed the task on the worker thread, 
+          // When we've executed the task on the worker thread,
           // run the callback on the eventloop thread
           this.context.runOnContext(v-> {
             handler.handle(event);
             });
           });
-        
+
       } else {
         future = null;
       }
@@ -138,7 +154,8 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
           if (records != null && records.count() > 0) {
             this.context.runOnContext(v -> handler.handle(records));
           } else {
-            this.pollRecords(handler);
+            // Don't call pollRecords directly, but use schedule() to actually pause when the readStream is paused
+            schedule(0);
           }
         } catch (WakeupException ignore) {
         }
@@ -147,13 +164,13 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
   }
 
   private void schedule(long delay) {
-    if (this.consuming.get() 
+    if (this.consuming.get()
         && !this.paused.get()
         && this.recordHandler != null) {
 
       Handler<ConsumerRecord<K, V>> handler = this.recordHandler;
       if (delay > 0) {
-        this.context.owner().setTimer(delay, v -> run(handler));
+        this.context.owner().setTimer(delay, v -> this.context.runOnContext(v2 -> run(handler)));
       } else {
         this.context.runOnContext(v -> run(handler));
       }
@@ -263,14 +280,16 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
 
   @Override
   public KafkaReadStream<K, V> seekToEnd(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
+    this.context.runOnContext(r -> {
+      current = null;
 
-    this.submitTask((consumer, future) -> {
-      consumer.seekToEnd(topicPartitions.toArray(new TopicPartition[]{}));
-      if (future != null) {
-        future.complete();
-      }
-    }, completionHandler);
-
+      this.submitTask((consumer, future) -> {
+        consumer.seekToEnd(topicPartitions);
+        if (future != null) {
+          future.complete();
+        }
+      }, completionHandler);
+    });
     return this;
   }
 
@@ -281,14 +300,16 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
 
   @Override
   public KafkaReadStream<K, V> seekToBeginning(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
+    this.context.runOnContext(r -> {
+      current = null;
 
-    this.submitTask((consumer, future) -> {
-      consumer.seekToBeginning(topicPartitions.toArray(new TopicPartition[]{}));
-      if (future != null) {
-        future.complete();
-      }
-    }, completionHandler);
-
+      this.submitTask((consumer, future) -> {
+        consumer.seekToBeginning(topicPartitions);
+        if (future != null) {
+          future.complete();
+        }
+      }, completionHandler);
+    });
     return this;
   }
 
@@ -299,13 +320,16 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
 
   @Override
   public KafkaReadStream<K, V> seek(TopicPartition topicPartition, long offset, Handler<AsyncResult<Void>> completionHandler) {
+    this.context.runOnContext(r -> {
+      current = null;
 
-    this.submitTask((consumer, future) -> {
-      consumer.seek(topicPartition, offset);
-      if (future != null) {
-        future.complete();
-      }
-    }, completionHandler);
+      this.submitTask((consumer, future) -> {
+        consumer.seek(topicPartition, offset);
+        if (future != null) {
+          future.complete();
+        }
+      }, completionHandler);
+    });
 
     return this;
   }
