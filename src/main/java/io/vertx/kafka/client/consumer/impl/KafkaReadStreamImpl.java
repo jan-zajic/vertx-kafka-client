@@ -546,7 +546,6 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
 
   @Override
   public void close(Handler<AsyncResult<Void>> completionHandler) {
-
     if (this.closed.compareAndSet(false, true)) {
       this.worker.submit(() -> {
         this.consumer.close();
@@ -558,6 +557,11 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
         });
       });
       this.consumer.wakeup();
+    }
+    else {
+      if (completionHandler != null) {
+        completionHandler.handle(Future.succeededFuture());
+      }
     }
   }
 
