@@ -160,7 +160,7 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
           }
         } catch (WakeupException ignore) {
         } catch (Exception e) {
-          if(exceptionHandler != null) {
+          if (exceptionHandler != null) {
             exceptionHandler.handle(e);
           }
         }
