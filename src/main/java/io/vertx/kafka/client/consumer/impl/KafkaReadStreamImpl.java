@@ -27,12 +27,12 @@ import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -291,7 +291,7 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
       current = null;
 
       this.submitTask((consumer, future) -> {
-        consumer.seekToEnd(topicPartitions);
+        consumer.seekToEnd(topicPartitions.toArray(new TopicPartition[]{}));
         if (future != null) {
           future.complete();
         }
@@ -311,7 +311,7 @@ public class KafkaReadStreamImpl<K, V> implements KafkaReadStream<K, V> {
       current = null;
 
       this.submitTask((consumer, future) -> {
-        consumer.seekToBeginning(topicPartitions);
+        consumer.seekToBeginning(topicPartitions.toArray(new TopicPartition[]{}));
         if (future != null) {
           future.complete();
         }
