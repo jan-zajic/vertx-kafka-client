@@ -30,6 +30,7 @@ import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
 import io.vertx.kafka.client.producer.RecordMetadata;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +52,14 @@ public class KafkaProducerImpl<K, V> implements KafkaProducer<K, V> {
 
   public static <K, V> KafkaProducer<K, V> createShared(Vertx vertx, String name, Map<String, String> config) {
     return createShared(vertx, name, () -> KafkaWriteStream.create(vertx, new HashMap<>(config)));
+  }
+
+  public static <K, V> KafkaProducer<K, V> createShared(Vertx vertx, String name, Properties config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    return createShared(vertx, name, () -> KafkaWriteStream.create(vertx, config, keySerializer, valueSerializer));
+  }
+
+  public static <K, V> KafkaProducer<K, V> createShared(Vertx vertx, String name, Map<String, String> config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    return createShared(vertx, name, () -> KafkaWriteStream.create(vertx, new HashMap<>(config), keySerializer, valueSerializer));
   }
 
   private static class SharedProducer extends HashMap<Object, KafkaProducer> {
@@ -125,18 +134,24 @@ public class KafkaProducerImpl<K, V> implements KafkaProducer<K, V> {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public KafkaProducer<K, V> write(KafkaProducerRecord<K, V> record, Handler<AsyncResult<RecordMetadata>> handler) {
-    this.stream.write(record.record(), done -> {
-      if (handler != null) {
-        if (done.succeeded()) {
-          handler.handle(Future.succeededFuture(Helper.from(done.result())));
-        } else {
-          handler.handle(Future.failedFuture(done.cause()));
-        }
-      }
-    });
+  public KafkaProducer<K, V> write(KafkaProducerRecord<K, V> record, Handler<AsyncResult<Void>> handler) {
+    this.stream.write(record.record(), handler);
+    return this;
+  }
 
+  @Override
+  public KafkaProducer<K, V> send(KafkaProducerRecord<K, V> record) {
+    return send(record, null);
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public KafkaProducer<K, V> send(KafkaProducerRecord<K, V> record, Handler<AsyncResult<RecordMetadata>> handler) {
+    Handler<AsyncResult<org.apache.kafka.clients.producer.RecordMetadata>> mdHandler = null;
+    if (handler != null) {
+      mdHandler = done -> handler.handle(done.map(Helper::from));
+    }
+    this.stream.send(record.record(), mdHandler);
     return this;
   }
 
@@ -174,6 +189,11 @@ public class KafkaProducerImpl<K, V> implements KafkaProducer<K, V> {
   @Override
   public void end() {
     this.stream.end();
+  }
+
+  @Override
+  public void end(Handler<AsyncResult<Void>> handler) {
+    this.stream.end(handler);
   }
 
   @Override

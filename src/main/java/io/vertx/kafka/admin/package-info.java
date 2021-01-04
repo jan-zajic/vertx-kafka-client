@@ -32,10 +32,6 @@
  * Parameters are: topic name, number of partitions, number of replicas, and the usual callback to handle the result.
  * It might return an error, e.g. if the number of requested replicas is greater than the number of brokers.
  *
- * [source,$lang]
- * ----
- * {@link examples.AdminUtilsExamples#createTopic}
- * ----
  *
  * === Delete a topic
  *
@@ -43,10 +39,6 @@
  * Parameters are: topic name, and the usual callback to handle the result.
  * It might return an error, e.g. if the topic does not exist.
  *
- * [source,$lang]
- * ----
- * {@link examples.AdminUtilsExamples#deleteTopic}
- * ----
  *
  * === Change a topic's configuration
  *
@@ -56,10 +48,6 @@
  * and the usual callback to handle the result.
  * It might return an error, e.g. if the topic does not exist.
  *
- * [source,$lang]
- * ----
- * {@link examples.AdminUtilsExamples#changeTopicConfig()}}
- * ----
  *
  * === Check if a topic exists
  *
@@ -67,10 +55,6 @@
  * Parameters are: topic name, and the usual callback to handle the result.
  * It might return an error, e.g. if the topic does not exist.
  *
- * [source,$lang]
- * ----
- * {@link examples.AdminUtilsExamples#topicExists()}
- * ----
  */
 @Document(fileName = "adminUtils.adoc")
 @ModuleGen(name = "vertx-kafka-client", groupPackage = "io.vertx")

@@ -16,23 +16,23 @@
 
 package io.vertx.kafka.client.producer.impl;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.PartitionInfo;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.producer.KafkaWriteStream;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.serialization.Serializer;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Kafka write stream implementation
@@ -43,8 +43,16 @@ public class KafkaWriteStreamImpl<K, V> implements KafkaWriteStream<K, V> {
     return new KafkaWriteStreamImpl<>(vertx.getOrCreateContext(), new org.apache.kafka.clients.producer.KafkaProducer<>(config));
   }
 
+  public static <K, V> KafkaWriteStreamImpl<K, V> create(Vertx vertx, Properties config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    return new KafkaWriteStreamImpl<>(vertx.getOrCreateContext(), new org.apache.kafka.clients.producer.KafkaProducer<>(config, keySerializer, valueSerializer));
+  }
+
   public static <K, V> KafkaWriteStreamImpl<K, V> create(Vertx vertx, Map<String, Object> config) {
     return new KafkaWriteStreamImpl<>(vertx.getOrCreateContext(), new org.apache.kafka.clients.producer.KafkaProducer<>(config));
+  }
+
+  public static <K, V> KafkaWriteStreamImpl<K, V> create(Vertx vertx, Map<String, Object> config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    return new KafkaWriteStreamImpl<>(vertx.getOrCreateContext(), new org.apache.kafka.clients.producer.KafkaProducer<>(config, keySerializer, valueSerializer));
   }
 
   private long maxSize = DEFAULT_MAX_SIZE;
@@ -70,48 +78,74 @@ public class KafkaWriteStreamImpl<K, V> implements KafkaWriteStream<K, V> {
   }
 
   @Override
-  public synchronized KafkaWriteStreamImpl<K, V> write(ProducerRecord<K, V> record, Handler<AsyncResult<RecordMetadata>> handler) {
+  public KafkaWriteStream<K, V> send(ProducerRecord<K, V> record) {
+    return send(record, null);
+  }
+
+  @Override
+  public synchronized KafkaWriteStreamImpl<K, V> send(ProducerRecord<K, V> record, Handler<AsyncResult<RecordMetadata>> handler) {
 
     int len = this.len(record.value());
     this.pending += len;
     this.context.<RecordMetadata>executeBlocking(fut -> {
-      this.producer.send(record, (metadata, err) -> {
+      try {
+        this.producer.send(record, (metadata, err) -> {
 
-        // callback from IO thread
-        this.context.runOnContext(v1 -> {
-          synchronized (KafkaWriteStreamImpl.this) {
+          // callback from IO thread
+          this.context.runOnContext(v1 -> {
+            synchronized (KafkaWriteStreamImpl.this) {
 
-            // if exception happens, no record written
-            if (err != null) {
+              // if exception happens, no record written
+              if (err != null) {
 
-              if (this.exceptionHandler != null) {
-                Handler<Throwable> exceptionHandler = this.exceptionHandler;
-                this.context.runOnContext(v2 -> exceptionHandler.handle(err));
+                if (this.exceptionHandler != null) {
+                  Handler<Throwable> exceptionHandler = this.exceptionHandler;
+                  this.context.runOnContext(v2 -> exceptionHandler.handle(err));
+                }
+              }
+
+              long lowWaterMark = this.maxSize / 2;
+              this.pending -= len;
+              if (this.pending < lowWaterMark && this.drainHandler != null) {
+                Handler<Void> drainHandler = this.drainHandler;
+                this.drainHandler = null;
+                this.context.runOnContext(drainHandler);
               }
             }
 
-            long lowWaterMark = this.maxSize / 2;
-            this.pending -= len;
-            if (this.pending < lowWaterMark && this.drainHandler != null) {
-              Handler<Void> drainHandler = this.drainHandler;
-              this.drainHandler = null;
-              this.context.runOnContext(drainHandler);
+            if (handler != null) {
+              handler.handle(err != null ? Future.failedFuture(err) : Future.succeededFuture(metadata));
             }
-          }
-
-          if (handler != null) {
-            handler.handle(err != null ? Future.failedFuture(err) : Future.succeededFuture(metadata));
-          }
+          });
         });
-      });
+      } catch (Throwable e) {
+        synchronized (KafkaWriteStreamImpl.this) {
+          if (this.exceptionHandler != null) {
+            Handler<Throwable> exceptionHandler = this.exceptionHandler;
+            this.context.runOnContext(v3 -> exceptionHandler.handle(e));
+          }
+        }
+
+        if (handler != null) {
+          handler.handle(Future.failedFuture(e));
+        }
+      }
     }, null);
 
     return this;
   }
 
   @Override
-  public KafkaWriteStreamImpl<K, V> write(ProducerRecord<K, V> record) {
+  public KafkaWriteStreamImpl<K, V> write(ProducerRecord<K, V> data, Handler<AsyncResult<Void>> handler) {
+    Handler<AsyncResult<RecordMetadata>> mdHandler = null;
+    if (handler != null) {
+      mdHandler = ar -> handler.handle(ar.mapEmpty());
+    }
+    return send(data, mdHandler);
+  }
 
+  @Override
+  public KafkaWriteStreamImpl<K, V> write(ProducerRecord<K, V> record) {
     return this.write(record, null);
   }
 
@@ -134,6 +168,13 @@ public class KafkaWriteStreamImpl<K, V> implements KafkaWriteStream<K, V> {
 
   @Override
   public void end() {
+  }
+
+  @Override
+  public void end(Handler<AsyncResult<Void>> handler) {
+    if (handler != null) {
+      context.runOnContext(v -> handler.handle(Future.succeededFuture()));
+    }
   }
 
   @Override

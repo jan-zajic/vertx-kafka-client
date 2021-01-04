@@ -25,6 +25,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.List;
 import java.util.Map;
@@ -56,10 +57,36 @@ public interface KafkaWriteStream<K, V> extends WriteStream<ProducerRecord<K, V>
    *
    * @param vertx Vert.x instance to use
    * @param config  Kafka producer configuration
+   * @param keySerializer key serializer
+   * @param valueSerializer value serializer
+   * @return  an instance of the KafkaWriteStream
+   */
+  static <K, V> KafkaWriteStream<K, V> create(Vertx vertx, Properties config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    return KafkaWriteStreamImpl.create(vertx, config, keySerializer, valueSerializer);
+  }
+
+  /**
+   * Create a new KafkaWriteStream instance
+   *
+   * @param vertx Vert.x instance to use
+   * @param config  Kafka producer configuration
    * @return  an instance of the KafkaWriteStream
    */
   static <K, V> KafkaWriteStream<K, V> create(Vertx vertx, Map<String, Object> config) {
     return KafkaWriteStreamImpl.create(vertx, config);
+  }
+
+  /**
+   * Create a new KafkaWriteStream instance
+   *
+   * @param vertx Vert.x instance to use
+   * @param config  Kafka producer configuration
+   * @param keySerializer key serializer
+   * @param valueSerializer value serializer
+   * @return  an instance of the KafkaWriteStream
+   */
+  static <K, V> KafkaWriteStream<K, V> create(Vertx vertx, Map<String, Object> config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    return KafkaWriteStreamImpl.create(vertx, config, keySerializer, valueSerializer);
   }
 
   /**
@@ -76,10 +103,18 @@ public interface KafkaWriteStream<K, V> extends WriteStream<ProducerRecord<K, V>
    * Asynchronously write a record to a topic
    *
    * @param record  record to write
+   * @return  current KafkaWriteStream instance
+   */
+  KafkaWriteStream<K, V> send(ProducerRecord<K, V> record);
+
+  /**
+   * Asynchronously write a record to a topic
+   *
+   * @param record  record to write
    * @param handler handler called on operation completed
    * @return  current KafkaWriteStream instance
    */
-  KafkaWriteStream<K, V> write(ProducerRecord<K, V> record, Handler<AsyncResult<RecordMetadata>> handler);
+  KafkaWriteStream<K, V> send(ProducerRecord<K, V> record, Handler<AsyncResult<RecordMetadata>> handler);
 
   /**
    * Get the partition metadata for the give topic.

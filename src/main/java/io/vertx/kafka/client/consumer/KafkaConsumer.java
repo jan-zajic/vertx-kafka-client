@@ -16,6 +16,7 @@
 
 package io.vertx.kafka.client.consumer;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,7 +124,7 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    * @return  current KafkaConsumer instance
    */
   @Fluent
-  KafkaConsumer<K, V> subscribe(Set<String> topics);
+  KafkaConsumer<K, V> subscribe(List<String> topics);
 
   /**
    * Subscribe to the given topic to get dynamically assigned partitions.
@@ -143,7 +144,7 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    * @return  current KafkaConsumer instance
    */
   @Fluent
-  KafkaConsumer<K, V> subscribe(Set<String> topics, Handler<AsyncResult<Void>> completionHandler);
+  KafkaConsumer<K, V> subscribe(List<String> topics, Handler<AsyncResult<Void>> completionHandler);
 
   /**
    * Manually assign a partition to this consumer.
@@ -161,7 +162,7 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    * @return  current KafkaConsumer instance
    */
   @Fluent
-  KafkaConsumer<K, V> assign(Set<TopicPartition> topicPartitions);
+  KafkaConsumer<K, V> assign(List<TopicPartition> topicPartitions);
 
   /**
    * Manually assign a partition to this consumer.
@@ -181,7 +182,7 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    * @return  current KafkaConsumer instance
    */
   @Fluent
-  KafkaConsumer<K, V> assign(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler);
+  KafkaConsumer<K, V> assign(List<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler);
 
   /**
    * Get the set of partitions currently assigned to this consumer.
@@ -510,4 +511,59 @@ public interface KafkaConsumer<K, V> extends ReadStream<KafkaConsumerRecord<K, V
    */
   @GenIgnore
   Consumer<K, V> unwrap();
+  
+  /**
+   * Sets the poll timeout (in ms) for the underlying native Kafka Consumer. Defaults to 1000.
+   *
+   * @deprecated use {@link #pollTimeout(Duration)}
+   */
+  @Deprecated
+  @Fluent
+  KafkaConsumer<K, V> pollTimeout(long timeout);
+
+  /**
+   * Sets the poll timeout for the underlying native Kafka Consumer. Defaults to 1000ms.
+   * Setting timeout to a lower value results in a more 'responsive' client, because it will block for a shorter period
+   * if no data is available in the assigned partition and therefore allows subsequent actions to be executed with a shorter
+   * delay. At the same time, the client will poll more frequently and thus will potentially create a higher load on the Kafka Broker.
+   *
+   * @param timeout The time, spent waiting in poll if data is not available in the buffer.
+   * If 0, returns immediately with any records that are available currently in the native Kafka consumer's buffer,
+   * else returns empty. Must not be negative.
+   */
+  @Fluent
+  @GenIgnore(GenIgnore.PERMITTED_TYPE)
+  KafkaConsumer<K, V> pollTimeout(Duration timeout);
+
+  /**
+   * Executes a poll for getting messages from Kafka
+   *
+   * @param timeout The time, in milliseconds, spent waiting in poll if data is not available in the buffer.
+   *                If 0, returns immediately with any records that are available currently in the native Kafka consumer's buffer,
+   *                else returns empty. Must not be negative.
+   * @param handler handler called after the poll with batch of records (can be empty).
+   *
+   * @deprecated use {@link #poll(Duration, Handler)}
+   */
+  @Deprecated
+  void poll(long timeout, Handler<AsyncResult<KafkaConsumerRecords<K, V>>> handler);
+
+  /**
+   * Executes a poll for getting messages from Kafka.
+   *
+   * @param timeout The maximum time to block (must not be greater than {@link Long#MAX_VALUE} milliseconds)
+   * @param handler handler called after the poll with batch of records (can be empty).
+   */
+  @GenIgnore(GenIgnore.PERMITTED_TYPE)
+  void poll(Duration timeout, Handler<AsyncResult<KafkaConsumerRecords<K, V>>> handler);
+  
+  /**
+   * Fetch the specified {@code amount} of elements. If the {@code ReadStream} has been paused, reading will
+   * recommence with the specified {@code amount} of items, otherwise the specified {@code amount} will
+   * be added to the current stream demand.
+   *
+   * @return a reference to this, so the API can be used fluently
+   */
+  @Fluent
+  KafkaConsumer<K,V> fetch(long amount);
 }

@@ -16,10 +16,12 @@
 
 package io.vertx.kafka.client.consumer;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,7 +29,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.Deserializer;
 
+import io.vertx.codegen.annotations.Fluent;
+import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -46,6 +51,18 @@ import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
 public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> {
 
   /**
+   * Returns the current demand.
+   *
+   * <ul>
+   *   <i>If the stream is in <i>flowing</i> mode will return {@link Long#MAX_VALUE}.</i>
+   *   <li>If the stream is in <i>fetch</i> mode, will return the current number of elements still to be delivered or 0 if paused.</li>
+   * </ul>
+   *
+   * @return current demand
+   */
+  long demand();
+
+  /**
    * Create a new KafkaReadStream instance
    *
    * @param vertx Vert.x instance to use
@@ -61,10 +78,60 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
    *
    * @param vertx Vert.x instance to use
    * @param config  Kafka consumer configuration
+   * @param keyDeserializer key deserializer
+   * @param valueDeserializer value deserializer
+   * @return  an instance of the KafkaReadStream
+   */
+  static <K, V> KafkaReadStream<K, V> create(Vertx vertx, Properties config, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+    return create(vertx, new org.apache.kafka.clients.consumer.KafkaConsumer<>(config, keyDeserializer, valueDeserializer));
+  }
+
+  /**
+   * Create a new KafkaReadStream instance
+   *
+   * @param vertx Vert.x instance to use
+   * @param config  Kafka consumer configuration
    * @return  an instance of the KafkaReadStream
    */
   static <K, V> KafkaReadStream<K, V> create(Vertx vertx, Map<String, Object> config) {
     return create(vertx, new org.apache.kafka.clients.consumer.KafkaConsumer<>(config));
+  }
+
+  @Fluent
+  @Override
+  KafkaReadStream<K, V> exceptionHandler(Handler<Throwable> handler);
+
+  @Fluent
+  @Override
+  KafkaReadStream<K, V> handler(@Nullable Handler<ConsumerRecord<K, V>> handler);
+
+  @Fluent
+  @Override
+  KafkaReadStream<K, V> pause();
+
+  @Fluent
+  @Override
+  KafkaReadStream<K, V> resume();
+
+  @Fluent
+  @Override
+  KafkaReadStream<K, V> fetch(long amount);
+
+  @Fluent
+  @Override
+  KafkaReadStream<K, V> endHandler(@Nullable Handler<Void> endHandler);
+
+  /**
+   * Create a new KafkaReadStream instance
+   *
+   * @param vertx Vert.x instance to use
+   * @param config  Kafka consumer configuration
+   * @param keyDeserializer key deserializer
+   * @param valueDeserializer value deserializer
+   * @return  an instance of the KafkaReadStream
+   */
+  static <K, V> KafkaReadStream<K, V> create(Vertx vertx, Map<String, Object> config, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+    return create(vertx, new org.apache.kafka.clients.consumer.KafkaConsumer<>(config, keyDeserializer, valueDeserializer));
   }
 
   /**
@@ -96,6 +163,14 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
 
   /**
    * Suspend fetching from the requested partitions.
+   * <p>
+   * Due to internal buffering of messages,
+   * the {@linkplain #handler(Handler) record handler} will
+   * continue to observe messages from the given {@code topicPartitions}
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will not see messages
+   * from the given {@code topicPartitions}.
    *
    * @param topicPartitions topic partition from which suspend fetching
    * @param completionHandler handler called on operation completed
@@ -130,6 +205,14 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
 
   /**
    * Seek to the last offset for each of the given partitions.
+   * <p>
+   * Due to internal buffering of messages,
+   * the {@linkplain #handler(Handler) record handler} will
+   * continue to observe messages fetched with respect to the old offset
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will only see messages
+   * consistent with the new offset.
    *
    * @param topicPartitions topic partition for which seek
    * @param completionHandler handler called on operation completed
@@ -147,6 +230,14 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
 
   /**
    * Seek to the first offset for each of the given partitions.
+   * <p>
+   * Due to internal buffering of messages,
+   * the {@linkplain #handler(Handler) record handler} will
+   * continue to observe messages fetched with respect to the old offset
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will only see messages
+   * consistent with the new offset.
    *
    * @param topicPartitions topic partition for which seek
    * @param completionHandler handler called on operation completed
@@ -165,6 +256,14 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
 
   /**
    * Overrides the fetch offsets that the consumer will use on the next poll.
+   * <p>
+   * Due to internal buffering of messages,
+   * the {@linkplain #handler(Handler) record handler} will
+   * continue to observe messages fetched with respect to the old offset
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will only see messages
+   * consistent with the new offset.
    *
    * @param topicPartition  topic partition for which seek
    * @param offset  offset to seek inside the topic partition
@@ -195,16 +294,49 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
    * @param topics  topics to subscribe to
    * @return  current KafkaReadStream instance
    */
-  KafkaReadStream<K, V> subscribe(Set<String> topics);
+  KafkaReadStream<K, V> subscribe(List<String> topics);
 
   /**
    * Subscribe to the given list of topics to get dynamically assigned partitions.
+   * <p>
+   * Due to internal buffering of messages, when changing the subscribed topics
+   * the old set of topics may remain in effect
+   * (as observed by the {@linkplain #handler(Handler)} record handler})
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will only see messages
+   * consistent with the new set of topics.
    *
    * @param topics  topics to subscribe to
    * @param completionHandler handler called on operation completed
    * @return  current KafkaReadStream instance
    */
-  KafkaReadStream<K, V> subscribe(Set<String> topics, Handler<AsyncResult<Void>> completionHandler);
+  KafkaReadStream<K, V> subscribe(List<String> topics, Handler<AsyncResult<Void>> completionHandler);
+
+  /**
+   * Subscribe to all topics matching specified pattern to get dynamically assigned partitions.
+   * <p>
+   * Due to internal buffering of messages, when changing the subscribed topics
+   * the old set of topics may remain in effect
+   * (as observed by the {@linkplain #handler(Handler)} record handler})
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will only see messages
+   * consistent with the new set of topics.
+   *
+   * @param pattern  Pattern to subscribe to
+   * @param completionHandler handler called on operation completed
+   * @return  current KafkaReadStream instance
+   */
+  KafkaReadStream<K, V> subscribe(Pattern pattern, Handler<AsyncResult<Void>> completionHandler);
+
+  /**
+   * Subscribe to all topics matching specified pattern to get dynamically assigned partitions.
+   *
+   * @param pattern  Pattern to subscribe to
+   * @return  current KafkaReadStream instance
+   */
+  KafkaReadStream<K, V> subscribe(Pattern pattern);
 
   /**
    * Unsubscribe from topics currently subscribed with subscribe.
@@ -230,21 +362,29 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
   KafkaReadStream<K, V> subscription(Handler<AsyncResult<Set<String>>> handler);
 
   /**
-   * Manually assign a list of partition to this consumer.
+   * Manually assign a set of partitions to this consumer.
    *
    * @param partitions  partitions which want assigned
    * @return  current KafkaReadStream instance
    */
-  KafkaReadStream<K, V> assign(Set<TopicPartition> partitions);
+  KafkaReadStream<K, V> assign(List<TopicPartition> partitions);
 
   /**
-   * Manually assign a list of partition to this consumer.
+   * Manually assign a set of partitions to this consumer.
+   * <p>
+   * Due to internal buffering of messages, when reassigning
+   * the old set of partitions may remain in effect
+   * (as observed by the {@linkplain #handler(Handler)} record handler)}
+   * until some time <em>after</em> the given {@code completionHandler}
+   * is called. In contrast, the once the given {@code completionHandler}
+   * is called the {@link #batchHandler(Handler)} will only see messages
+   * consistent with the new set of partitions.
    *
    * @param partitions  partitions which want assigned
    * @param completionHandler handler called on operation completed
    * @return  current KafkaReadStream instance
    */
-  KafkaReadStream<K, V> assign(Set<TopicPartition> partitions, Handler<AsyncResult<Void>> completionHandler);
+  KafkaReadStream<K, V> assign(List<TopicPartition> partitions, Handler<AsyncResult<Void>> completionHandler);
 
   /**
    * Get the set of partitions currently assigned to this consumer.
@@ -326,14 +466,54 @@ public interface KafkaReadStream<K, V> extends ReadStream<ConsumerRecord<K, V>> 
   Consumer<K, V> unwrap();
 
   /**
-   * Set the handler that will be called when a new batch of records is 
-   * returned from Kafka. Batch handlers need to take care not to block 
+   * Set the handler that will be called when a new batch of records is
+   * returned from Kafka. Batch handlers need to take care not to block
    * the event loop when dealing with large batches. It is better to process
    * records individually using the {@link #handler(Handler) record handler}.
-   * 
+   *
    * @param handler handler called each time Kafka returns a batch of records.
    * @return current KafkaReadStream instance.
    */
   KafkaReadStream<K, V> batchHandler(Handler<ConsumerRecords<K, V>> handler);
 
+  /**
+   * Sets the poll timeout for the underlying native Kafka Consumer. Defaults to 1000 ms.
+   * Setting timeout to a lower value results in a more 'responsive' client, because it will block for a shorter period
+   * if no data is available in the assigned partition and therefore allows subsequent actions to be executed with a shorter
+   * delay. At the same time, the client will poll more frequently and thus will potentially create a higher load on the Kafka Broker.
+   *
+   * @param timeout The time, spent waiting in poll if data is not available in the buffer.
+   * If 0, returns immediately with any records that are available currently in the native Kafka consumer's buffer,
+   * else returns empty. Must not be negative.
+   */
+  KafkaReadStream<K, V> pollTimeout(Duration timeout);
+
+  /**
+   * Sets the poll timeout (in ms) for the underlying native Kafka Consumer. Defaults to 1000.
+   *
+   * @deprecated use {@link #pollTimeout(Duration)}
+   */
+  @Deprecated
+  KafkaReadStream<K, V> pollTimeout(long timeout);
+
+  /**
+   * Executes a poll for getting messages from Kafka
+   *
+   * @param timeout The time, in milliseconds, spent waiting in poll if data is not available in the buffer.
+   *                If 0, returns immediately with any records that are available currently in the native Kafka consumer's buffer,
+   *                else returns empty. Must not be negative.
+   * @param handler handler called after the poll with batch of records (can be empty).
+   *
+   * @deprecated use {@link #poll(Duration, Handler)}
+   */
+  @Deprecated
+  void poll(long timeout, Handler<AsyncResult<ConsumerRecords<K, V>>> handler);
+
+  /**
+   * Executes a poll for getting messages from Kafka.
+   *
+   * @param timeout The maximum time to block (must not be greater than {@link Long#MAX_VALUE} milliseconds)
+   * @param handler handler called after the poll with batch of records (can be empty).
+   */
+  void poll(Duration timeout, Handler<AsyncResult<ConsumerRecords<K, V>>> handler);
 }

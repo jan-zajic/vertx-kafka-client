@@ -16,6 +16,7 @@
 
 package io.vertx.kafka.client.tests;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -88,7 +89,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         done.complete();
       }
     });
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
 
   @Test
@@ -125,7 +126,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         done.complete();
       }
     });
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
 
   @Test
@@ -157,9 +158,9 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         }));
       }
     });
-    //consumer.subscribe(Collections.singleton(topicName));
+    //consumer.subscribe(Arrays.asList(topicName));
     // Using assign instead of subscribe makes the test _much_ faster (2,5 seconds vs 10,5 seconds)
-    consumer.assign(Collections.singleton(new TopicPartition(topicName, 0)));
+    consumer.assign(Arrays.asList(new TopicPartition(topicName, 0)));
     commited.awaitSuccess(10000);
     Async batch2 = ctx.async();
     kafkaCluster.useTo().produceStrings(numMessages, batch2::complete,  () ->
@@ -178,7 +179,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         }));
       }
     });
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
 
   @Test
@@ -211,9 +212,9 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
           break;
       }
     });
-    // consumer.subscribe(Collections.singleton(topicName));
+    // consumer.subscribe(Arrays.asList(topicName));
     // Assign is much faster than subscribe
-    consumer.assign(Collections.singleton(new TopicPartition(topicName, 0)));
+    consumer.assign(Arrays.asList(new TopicPartition(topicName, 0)));
 
     commited.awaitSuccess(10000);
     Async closed = ctx.async();
@@ -230,7 +231,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         done.complete();
       }
     });
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
 
   @Test
@@ -259,7 +260,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
           ctx.fail();
           break;
         case 1:
-          consumer2.subscribe(Collections.singleton(topicName));
+          consumer2.subscribe(Arrays.asList(topicName));
           ctx.assertEquals(2, partitions.size());
           ctx.assertTrue(partitions.contains(new TopicPartition(topicName, 0)));
           ctx.assertTrue(partitions.contains(new TopicPartition(topicName, 1)));
@@ -298,7 +299,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
           break;
       }
     });
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
 
   @Test
@@ -354,7 +355,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         done.complete();
       }
     });
-    consumer.subscribe(Collections.singleton(topic));
+    consumer.subscribe(Arrays.asList(topic));
   }
 
   @Test
@@ -374,7 +375,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
       // no need for handling incoming records in this test
     });
 
-    consumer.subscribe(Collections.singleton(topicName), asyncResult -> {
+    consumer.subscribe(Arrays.asList(topicName), asyncResult -> {
 
       if (asyncResult.succeeded()) {
 
@@ -416,7 +417,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
 
     TopicPartition partition = new TopicPartition(topicName, 0);
 
-    consumer.assign(Collections.singleton(partition), asyncResult -> {
+    consumer.assign(Arrays.asList(partition), asyncResult -> {
 
       if (asyncResult.succeeded()) {
 
@@ -470,7 +471,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
 
     TopicPartition partition = new TopicPartition(topicName, 0);
 
-    consumer.assign(Collections.singleton(partition), asyncResult -> {
+    consumer.assign(Arrays.asList(partition), asyncResult -> {
 
       if (asyncResult.succeeded()) {
 
@@ -509,7 +510,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
 
     TopicPartition partition = new TopicPartition(topicName, 0);
 
-    consumer.assign(Collections.singleton(partition), asyncResult -> {
+    consumer.assign(Arrays.asList(partition), asyncResult -> {
 
       if (asyncResult.succeeded()) {
 
@@ -546,7 +547,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
       // no need for handling incoming records in this test
     });
 
-    consumer.subscribe(Collections.singleton(topicName), asyncResult -> {
+    consumer.subscribe(Arrays.asList(topicName), asyncResult -> {
 
       if (asyncResult.succeeded()) {
 
@@ -610,7 +611,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
       // no need for handling incoming records in this test
     });
 
-    consumer.subscribe(Collections.singleton(topicName), asyncResult -> {
+    consumer.subscribe(Arrays.asList(topicName), asyncResult -> {
 
       if (asyncResult.succeeded()) {
         consumer.partitionsFor(topicName, asyncResult1 -> {
@@ -680,7 +681,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
         });
       }
     });
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
 
   @Test
@@ -705,7 +706,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
     });
     consumer.exceptionHandler(ctx::fail);
     consumer.handler(rec -> {});
-    consumer.subscribe(Collections.singleton(topicName));
+    consumer.subscribe(Arrays.asList(topicName));
   }
   
   @Test
@@ -741,7 +742,7 @@ public abstract class ConsumerTestBase extends KafkaClusterTestBase {
        batchHandler.complete();
     });
     wrappedConsumer.handler(rec -> {});
-    wrappedConsumer.subscribe(Collections.singleton(topicName));
+    wrappedConsumer.subscribe(Arrays.asList(topicName));
   }
   
   <K, V> KafkaReadStream<K, V> createConsumer(Context context, Properties config) throws Exception {

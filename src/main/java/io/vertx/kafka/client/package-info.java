@@ -63,10 +63,6 @@
  * static creation methods exposed by {@link io.vertx.kafka.client.consumer.KafkaConsumer} and
  * {@link io.vertx.kafka.client.producer.KafkaProducer}
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleCreateConsumer}
- * ----
  *
  * In the above example, a {@link io.vertx.kafka.client.consumer.KafkaConsumer} instance is created using
  * a map instance in order to specify the Kafka nodes list to connect (just one) and
@@ -74,18 +70,10 @@
  *
  * Likewise a producer can be created
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#createProducer}
- * ----
  *
  * ifdef::java,groovy,kotlin[]
  * Another way is to use a {@link java.util.Properties} instance instead of the map.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleCreateConsumerJava}
- * ----
  *
  * More advanced creation methods allow to specify the class type for the key and the value used for sending messages
  * or provided by received messages; this is a way for setting the key and value serializers/deserializers instead of
@@ -96,16 +84,12 @@
  * == Receiving messages from a topic joining a consumer group
  *
  * In order to start receiving messages from Kafka topics, the consumer can use the
- * {@link io.vertx.kafka.client.consumer.KafkaConsumer#subscribe(java.util.Set)} method for
+ * {@link io.vertx.kafka.client.consumer.KafkaConsumer#subscribe(java.util.List)} method for
  * subscribing to a set of topics being part of a consumer group (specified by the properties on creation).
  *
  * You also need to register a handler for handling incoming messages using the
  * {@link io.vertx.kafka.client.consumer.KafkaConsumer#handler(io.vertx.core.Handler)}.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleSubscribe(io.vertx.kafka.client.consumer.KafkaConsumer)}
- * ----
  *
  * The handler can be registered before or after the call to `subscribe()`; messages won't be consumed until both
  * methods have been called. This allows you to call `subscribe()`, then `seek()` and finally `handler()` in
@@ -114,10 +98,6 @@
  * A handler can also be passed during subscription to be aware of the subscription result and being notified when the operation
  * is completed.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleSubscribeWithResult(io.vertx.kafka.client.consumer.KafkaConsumer)}
- * ----
  *
  * Using the consumer group way, the Kafka cluster assigns partitions to the consumer taking into account other connected
  * consumers in the same consumer group, so that partitions can be spread across them.
@@ -130,25 +110,13 @@
  * {@link io.vertx.kafka.client.consumer.KafkaConsumer#partitionsRevokedHandler(io.vertx.core.Handler)} and
  * {@link io.vertx.kafka.client.consumer.KafkaConsumer#partitionsAssignedHandler(io.vertx.core.Handler)}.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerPartitionsNotifs}
- * ----
  *
  * After joining a consumer group for receiving messages, a consumer can decide to leave the consumer group in order to
  * not get messages anymore using {@link io.vertx.kafka.client.consumer.KafkaConsumer#unsubscribe()}
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleUnsubscribe}
- * ----
  *
  * You can add an handler to be notified of the result
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleUnsubscribeWithCallback}
- * ----
  *
  * == Receiving messages from a topic requesting specific partitions
  *
@@ -156,13 +124,9 @@
  * topic partition. When the consumer is not part part of a consumer group the overall application cannot
  * rely on the re-balancing feature.
  *
- * You can use {@link io.vertx.kafka.client.consumer.KafkaConsumer#assign(java.util.Set, io.vertx.core.Handler)}
+ * You can use {@link io.vertx.kafka.client.consumer.KafkaConsumer#assign(java.util.List, io.vertx.core.Handler)}
  * in order to ask for specific partitions.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerAssignPartition}
- * ----
  *
  * As with `subscribe()`, the handler can be registered before or after the call to `assign()`;
  * messages won't be consumed until both methods have been called. This allows you to call
@@ -177,18 +141,10 @@
  * You can call the {@link io.vertx.kafka.client.consumer.KafkaConsumer#partitionsFor} to get information about
  * partitions for a specified topic
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerPartitionsFor}
- * ----
  *
  * In addition {@link io.vertx.kafka.client.consumer.KafkaConsumer#listTopics} provides all available topics
  * with related partitions
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerListTopics}
- * ----
  *
  * == Manual offset commit
  *
@@ -202,10 +158,6 @@
  * It can be used to achieve _at least once_ delivery to be sure that the read messages are processed before committing
  * the offset.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerManualOffsetCommit}
- * ----
  *
  * == Seeking in a topic partition
  *
@@ -215,24 +167,12 @@
  * You can use {@link io.vertx.kafka.client.consumer.KafkaConsumer#seek} to change the offset for reading at a specific
  * position
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleSeek}
- * ----
  *
  * When the consumer needs to re-read the stream from the beginning, it can use {@link io.vertx.kafka.client.consumer.KafkaConsumer#seekToBeginning}
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleSeekToBeginning}
- * ----
  *
  * Finally {@link io.vertx.kafka.client.consumer.KafkaConsumer#seekToEnd} can be used to come back at the end of the partition
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleSeekToEnd}
- * ----
  *
  * == Message flow control
  *
@@ -243,10 +183,6 @@
  * To achieve that you can use {@link io.vertx.kafka.client.consumer.KafkaConsumer#pause} and
  * {@link io.vertx.kafka.client.consumer.KafkaConsumer#resume}
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerFlowControl}
- * ----
  *
  * == Closing a consumer
  *
@@ -257,10 +193,6 @@
  *
  * This handler will then be called when the close has fully completed.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleConsumerClose(io.vertx.kafka.client.consumer.KafkaConsumer)}
- * ----
  *
  * == Sending messages to a topic
  *
@@ -269,33 +201,17 @@
  * The simplest way to send a message is to specify only the destination topic and the related value, omitting its key
  * or partition, in this case the messages are sent in a round robin fashion across all the partitions of the topic.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleProducerWrite}
- * ----
  *
  * You can receive message sent metadata like its topic, its destination partition and its assigned offset.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleProducerWriteWithAck}
- * ----
  *
  * When you need to assign a partition to a message, you can specify its partition identifier
  * or its key
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleProducerWriteWithSpecificPartition}
- * ----
  *
  * Since the producers identifies the destination using key hashing, you can use that to guarantee that all
  * messages with the same key are sent to the same partition and retain the order.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleProducerWriteWithSpecificKey}
- * ----
  *
  * NOTE: the shared producer is created on the first `createShared` call and its configuration is defined at this moment,
  * shared producer usage must use the same configuration.
@@ -307,10 +223,6 @@
  * Calling {@link io.vertx.kafka.client.producer.KafkaProducer#createShared(io.vertx.core.Vertx, java.lang.String, java.util.Map)}
  * returns a producer that can be shared safely.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleSharedProducer}
- * ----
  *
  * The same resources (thread, connection) will be shared between the producer returned by this method.
  *
@@ -326,20 +238,12 @@
  *
  * This handler will then be called when the close has fully completed.
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleProducerClose(io.vertx.kafka.client.producer.KafkaProducer)}
- * ----
  *
  * == Getting topic partition information
  *
  * You can call the {@link io.vertx.kafka.client.producer.KafkaProducer#partitionsFor} to get information about
  * partitions for a specified topic:
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleProducerPartitionsFor}
- * ----
  *
  * == Handling errors
  *
@@ -347,10 +251,6 @@
  * {@link io.vertx.kafka.client.consumer.KafkaConsumer#exceptionHandler} or
  * {@link io.vertx.kafka.client.producer.KafkaProducer#exceptionHandler}
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleErrorHandling}
- * ----
  *
  * == Automatic clean-up in verticles
  *
@@ -364,27 +264,15 @@
  *
  * In a consumer you can use buffers
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleUsingVertxDeserializers()}
- * ----
  *
  * Or in a producer
  *
- * [source,$lang]
- * ----
- * {@link examples.VertxKafkaClientExamples#exampleUsingVertxSerializers()}
- * ----
  * 
  * ifdef::java[]
  * == RxJava API
  *
  * The Kafka client provides an Rxified version of the original API.
  *
- * [source,$lang]
- * ----
- * {@link examples.RxExamples#consumer(io.vertx.rxjava.kafka.client.consumer.KafkaConsumer)}
- * ----
  * endif::[]
  *
  * ifdef::java,groovy,kotlin[]

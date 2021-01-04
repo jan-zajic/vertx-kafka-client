@@ -16,11 +16,10 @@
 
 package io.vertx.kafka.client.tests;
 
-import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.kafka.client.consumer.KafkaReadStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.MockConsumer;
@@ -31,8 +30,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.Collections;
-import java.util.concurrent.atomic.AtomicInteger;
+import io.vertx.core.Vertx;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
 
 /**
  * Tests using mock consumers
@@ -64,7 +66,7 @@ public abstract class ConsumerMockTestBase {
       ctx.assertEquals("def", record.value());
       consumer.close(v -> doneLatch.complete());
     });
-    consumer.subscribe(Collections.singleton("the_topic"), v -> {
+    consumer.subscribe(Arrays.asList("the_topic"), v -> {
       mock.schedulePollTask(()-> {
         mock.rebalance(Collections.singletonList(new TopicPartition("the_topic", 0)));
         mock.addRecord(new ConsumerRecord<>("the_topic", 0, 0L, "abc", "def"));
@@ -92,7 +94,7 @@ public abstract class ConsumerMockTestBase {
         }
       }
     });
-    consumer.subscribe(Collections.singleton("the_topic"), v -> {
+    consumer.subscribe(Arrays.asList("the_topic"), v -> {
       mock.schedulePollTask(() -> {
         mock.rebalance(Collections.singletonList(new TopicPartition("the_topic", 0)));
         mock.seek(new TopicPartition("the_topic", 0), 0);

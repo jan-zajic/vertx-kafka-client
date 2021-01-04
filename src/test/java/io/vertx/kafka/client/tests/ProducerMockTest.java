@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -180,7 +181,7 @@ public class ProducerMockTest {
     consumerProps.put("enable.auto.commit", "false");
     consumerProps.put("auto.offset.reset", "earliest");
     KafkaReadStream<String, String> consumer = KafkaReadStream.create(vertx, consumerProps);
-    consumer.subscribe(Collections.singleton(topic));
+    consumer.subscribe(Arrays.asList(topic));
     AtomicInteger received = new AtomicInteger();
 
     Async async = ctx.async();

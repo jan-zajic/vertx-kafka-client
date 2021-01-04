@@ -16,7 +16,7 @@
 
 package io.vertx.kafka.client.tests;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,8 +30,6 @@ import org.junit.Test;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.kafka.client.consumer.KafkaReadStream;
@@ -113,6 +111,6 @@ public class CodecsTest extends KafkaClusterTestBase {
         done.complete();
       }
     });
-    readStream.subscribe(Collections.singleton(prefix + topic));
+    readStream.subscribe(Arrays.asList(prefix + topic));
   }
 }

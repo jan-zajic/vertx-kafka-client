@@ -16,12 +16,16 @@
 
 package io.vertx.kafka.client.consumer.impl;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,6 +45,7 @@ import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecords;
 import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.OffsetAndMetadata;
+import io.vertx.kafka.client.consumer.OffsetAndTimestamp;
 
 /**
  * Vert.x Kafka consumer implementation
@@ -93,6 +98,16 @@ public class KafkaConsumerImpl<K, V> implements KafkaConsumer<K, V> {
   }
 
   @Override
+  public KafkaConsumer<K, V> fetch(long amount) {
+    this.stream.fetch(amount);
+    return this;
+  }
+
+  public long demand() {
+    return this.stream.demand();
+  }
+
+  @Override
   public KafkaConsumer<K, V> pause(Set<TopicPartition> topicPartitions) {
     return this.pause(topicPartitions, null);
   }
@@ -137,42 +152,42 @@ public class KafkaConsumerImpl<K, V> implements KafkaConsumer<K, V> {
 
   @Override
   public KafkaConsumer<K, V> subscribe(String topic) {
-    return this.subscribe(Collections.singleton(topic));
+    return this.subscribe(Arrays.asList(topic));
   }
 
   @Override
-  public KafkaConsumer<K, V> subscribe(Set<String> topics) {
+  public KafkaConsumer<K, V> subscribe(List<String> topics) {
     return this.subscribe(topics, null);
   }
 
   @Override
   public KafkaConsumer<K, V> subscribe(String topic, Handler<AsyncResult<Void>> completionHandler) {
-    return this.subscribe(Collections.singleton(topic), completionHandler);
+    return this.subscribe(Arrays.asList(topic), completionHandler);
   }
 
   @Override
-  public KafkaConsumer<K, V> subscribe(Set<String> topics, Handler<AsyncResult<Void>> completionHandler) {
+  public KafkaConsumer<K, V> subscribe(List<String> topics, Handler<AsyncResult<Void>> completionHandler) {
     this.stream.subscribe(topics, completionHandler);
     return this;
   }
 
   @Override
   public KafkaConsumer<K, V> assign(TopicPartition topicPartition) {
-    return this.assign(Collections.singleton(topicPartition));
+    return this.assign(Arrays.asList(topicPartition));
   }
 
   @Override
-  public KafkaConsumer<K, V> assign(Set<TopicPartition> topicPartitions) {
+  public KafkaConsumer<K, V> assign(List<TopicPartition> topicPartitions) {
     return this.assign(topicPartitions, null);
   }
 
   @Override
   public KafkaConsumer<K, V> assign(TopicPartition topicPartition, Handler<AsyncResult<Void>> completionHandler) {
-    return this.assign(Collections.singleton(topicPartition), completionHandler);
+    return this.assign(Arrays.asList(topicPartition), completionHandler);
   }
 
   @Override
-  public KafkaConsumer<K, V> assign(Set<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
+  public KafkaConsumer<K, V> assign(List<TopicPartition> topicPartitions, Handler<AsyncResult<Void>> completionHandler) {
     this.stream.assign(Helper.to(topicPartitions), completionHandler);
     return this;
   }
@@ -417,5 +432,33 @@ public class KafkaConsumerImpl<K, V> implements KafkaConsumer<K, V> {
       handler.handle(new KafkaConsumerRecordsImpl<>(records));
     });
     return this;
+  }
+
+  @Override
+  public KafkaConsumer<K, V> pollTimeout(final Duration timeout) {
+    this.stream.pollTimeout(timeout);
+    return this;
+  }
+
+  @Override
+  public KafkaConsumer<K, V> pollTimeout(long timeout) {
+    this.stream.pollTimeout(timeout);
+    return this;
+  }
+
+  @Override
+  public void poll(long timeout, Handler<AsyncResult<KafkaConsumerRecords<K, V>>> handler) {
+    poll(Duration.ofMillis(timeout), handler);
+  }
+
+  @Override
+  public void poll(final Duration timeout, final Handler<AsyncResult<KafkaConsumerRecords<K, V>>> handler) {
+    stream.poll(timeout, done -> {
+      if (done.succeeded()) {
+        handler.handle(Future.succeededFuture(new KafkaConsumerRecordsImpl<>(done.result())));
+      } else {
+        handler.handle(Future.failedFuture(done.cause()));
+      }
+    });
   }
 }

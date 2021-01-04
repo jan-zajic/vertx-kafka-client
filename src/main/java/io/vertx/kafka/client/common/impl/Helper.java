@@ -16,18 +16,18 @@
 
 package io.vertx.kafka.client.common.impl;
 
-import io.vertx.core.Handler;
-import io.vertx.kafka.client.common.Node;
-import io.vertx.kafka.client.consumer.OffsetAndTimestamp;
-import io.vertx.kafka.client.common.TopicPartition;
-import io.vertx.kafka.client.consumer.OffsetAndMetadata;
-import io.vertx.kafka.client.producer.RecordMetadata;
-
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import io.vertx.core.Handler;
+import io.vertx.kafka.client.common.Node;
+import io.vertx.kafka.client.common.TopicPartition;
+import io.vertx.kafka.client.consumer.OffsetAndMetadata;
+import io.vertx.kafka.client.producer.RecordMetadata;
 
 /**
  * Helper class for mapping native and Vert.x Kafka objects
@@ -49,10 +49,14 @@ public class Helper {
     return new org.apache.kafka.common.TopicPartition(topicPartition.getTopic(), topicPartition.getPartition());
   }
 
+  public static List<org.apache.kafka.common.TopicPartition> to(List<TopicPartition> topicPartitions) {
+    return topicPartitions.stream().map(Helper::to).collect(Collectors.toList());
+  }
+
   public static Set<org.apache.kafka.common.TopicPartition> to(Set<TopicPartition> topicPartitions) {
     return topicPartitions.stream().map(Helper::to).collect(Collectors.toSet());
   }
-
+  
   public static Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> to(Map<TopicPartition, OffsetAndMetadata> offsets) {
     return offsets.entrySet().stream().collect(Collectors.toMap(
       e -> new org.apache.kafka.common.TopicPartition(e.getKey().getTopic(), e.getKey().getPartition()),
